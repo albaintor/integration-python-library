@@ -1171,7 +1171,11 @@ class IntegrationAPI:
         while True:
             response = await websocket.recv()
             data = json.loads(response)
-            if data.get("kind") == "resp" and data.get("req_id") == req_id and data.get("msg") == "supported_entity_types":
+            if (
+                data.get("kind") == "resp"
+                and data.get("req_id") == req_id
+                and data.get("msg") == "supported_entity_types"
+            ):
                 return data.get("msg_data")
 
     async def get_version(self, websocket=None):
@@ -1187,7 +1191,11 @@ class IntegrationAPI:
         while True:
             response = await websocket.recv()
             data = json.loads(response)
-            if data.get("kind") == "resp" and data.get("req_id") == req_id and data.get("msg") == "version":
+            if (
+                data.get("kind") == "resp"
+                and data.get("req_id") == req_id
+                and data.get("msg") == "version"
+            ):
                 return data.get("msg_data")
 
     async def get_localization_cfg(self, websocket=None):
@@ -1203,7 +1211,11 @@ class IntegrationAPI:
         while True:
             response = await websocket.recv()
             data = json.loads(response)
-            if data.get("kind") == "resp" and data.get("req_id") == req_id and data.get("msg") == "localization_cfg":
+            if (
+                data.get("kind") == "resp"
+                and data.get("req_id") == req_id
+                and data.get("msg") == "localization_cfg"
+            ):
                 return data.get("msg_data")
 
     ##############
