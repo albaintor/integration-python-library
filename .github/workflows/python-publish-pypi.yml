@@ -37,10 +37,9 @@ jobs:
           python -m black ucapi examples --check --verbose
 
   build:
-    name: Build and publish PyPi package
+    name: Build package
     needs: verify
     runs-on: ubuntu-24.04
-    if: github.repository_owner == 'unfoldedcircle'
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python
@@ -53,7 +52,3 @@ jobs:
           python -m pip install --upgrade build setuptools setuptools_scm
       - name: Build package
         run: python -m build
-      #- name: Publish package
-      #  uses: pypa/gh-action-pypi-publish@release/v1
-      #  with:
-      #    password: ${{ secrets.PYPI_API_TOKEN }}
