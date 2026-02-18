@@ -428,7 +428,7 @@ class IntegrationAPI:
             else:
                 await self._handle_ws_request_msg(websocket, msg, req_id, msg_data)
         elif kind == "event":
-            await self._handle_ws_event_msg(msg, msg_data)
+            await self._handle_ws_event_msg(websocket, msg, msg_data)
         elif kind == "resp":
             # Response to a previously sent request
             # Some implementations use "req_id", others use "id"
