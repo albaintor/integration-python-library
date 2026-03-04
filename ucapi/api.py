@@ -28,6 +28,7 @@ from websockets.exceptions import ConnectionClosedOK
 from zeroconf import IPVersion
 from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
+from . import StatusCodes
 from . import api_definitions as uc
 from .entities import Entities
 from .entity import EntityTypes
@@ -711,6 +712,8 @@ class IntegrationAPI:
             )
         elif msg == uc.WsMessages.ENTITY_COMMAND:
             await self._entity_command(websocket, req_id, msg_data)
+        elif msg == uc.WsMessages.BROWSE_MEDIA:
+            await self._browse_media(websocket, req_id, msg_data)
         elif msg == uc.WsMessages.SUBSCRIBE_EVENTS:
             await self._subscribe_events(websocket, msg_data)
             await self._send_ok_result(websocket, req_id)
@@ -921,6 +924,44 @@ class IntegrationAPI:
             )
 
         await self.acknowledge_command(websocket, req_id, result)
+
+    async def _browse_media(
+        self, websocket, req_id: int, msg_data: dict[str, Any] | None
+    ) -> None:
+        if not msg_data:
+            _LOG.warning("Ignoring entity command: called with empty msg_data")
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.BAD_REQUEST
+            )
+            return
+
+        entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
+        if entity_id is None:
+            _LOG.warning("Ignoring command: missing entity_id")
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.BAD_REQUEST
+            )
+            return
+
+        entity = self.configured_entities.get(entity_id)
+        if entity is None:
+            _LOG.warning(
+                "Cannot browse media for '%s': no configured entity found",
+                entity_id,
+            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
+            return
+
+        result = await entity.browse_media(
+            msg_data,
+            websocket=websocket,
+        )
+        if isinstance(result, dict):
+            await self._send_ws_response(
+                websocket, req_id, "media_browse", result, StatusCodes.OK
+            )
+        else:
+            await self.acknowledge_command(websocket, req_id, result)
 
     async def _setup_driver(
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
