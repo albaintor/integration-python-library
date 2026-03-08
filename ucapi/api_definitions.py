@@ -60,6 +60,7 @@ class WsMessages(str, Enum):
     SETUP_DRIVER = "setup_driver"
     SET_DRIVER_USER_DATA = "set_driver_user_data"
     BROWSE_MEDIA = "browse_media"
+    SEARCH_MEDIA = "search_media"
 
 
 # Does WsMsgEvents need to be public?
