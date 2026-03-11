@@ -998,7 +998,7 @@ class IntegrationAPI:
         )
         if isinstance(result, dict):
             await self._send_ws_response(
-                websocket, req_id, "search_media", result, StatusCodes.OK
+                websocket, req_id, "media_search", result, StatusCodes.OK
             )
         else:
             await self.acknowledge_command(websocket, req_id, result)
