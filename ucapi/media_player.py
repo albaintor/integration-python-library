@@ -68,6 +68,11 @@ class Features(str, Enum):
     SUBTITLE = "subtitle"
     RECORD = "record"
     SETTINGS = "settings"
+    PLAY_MEDIA = "play_media"
+    CLEAR_PLAYLIST = "clear_playlist"
+    BROWSE_MEDIA = "browse_media"
+    SEARCH_MEDIA = "search_media"
+    SEARCH_MEDIA_CLASSES = "search_media_classes"
 
 
 class Attributes(str, Enum):
@@ -151,6 +156,7 @@ class Commands(str, Enum):
     SUBTITLE = "subtitle"
     SETTINGS = "settings"
     SEARCH = "search"
+    PLAY_MEDIA = "play_media"
 
 
 class DeviceClasses(str, Enum):
@@ -186,6 +192,64 @@ class RepeatMode(str, Enum):
     OFF = "OFF"
     ALL = "ALL"
     ONE = "ONE"
+
+
+class MediaPlayAction(str, Enum):
+    """Media Play actions."""
+
+    PLAY_NOW = "PLAY_NOW"
+    PLAY_NEXT = "PLAY_NEXT"
+    ADD_TO_QUEUE = "ADD_TO_QUEUE"
+
+
+class MediaContent(str, Enum):
+    """Media content types for media browsing."""
+
+    ALBUM = "album"
+    APP = "app"
+    APPS = "apps"
+    ARTIST = "artist"
+    CHANNEL = "channel"
+    CHANNELS = "channels"
+    COMPOSER = "composer"
+    EPISODE = "episode"
+    GAME = "game"
+    GENRE = "genre"
+    IMAGE = "image"
+    MOVIE = "movie"
+    MUSIC = "music"
+    PLAYLIST = "playlist"
+    PODCAST = "podcast"
+    RADIO = "radio"
+    SEASON = "season"
+    TRACK = "track"
+    TV_SHOW = "tv_show"
+    URL = "url"
+    VIDEO = "video"
+
+
+class MediaClass(str, Enum):
+    """Media classes for media browsing."""
+
+    ALBUM = "album"
+    APP = "app"
+    ARTIST = "artist"
+    CHANNEL = "channel"
+    COMPOSER = "composer"
+    DIRECTORY = "directory"
+    EPISODE = "episode"
+    GAME = "game"
+    GENRE = "genre"
+    IMAGE = "image"
+    MOVIE = "movie"
+    MUSIC = "music"
+    PLAYLIST = "playlist"
+    PODCAST = "podcast"
+    SEASON = "season"
+    TRACK = "track"
+    TV_SHOW = "tv_show"
+    URL = "url"
+    VIDEO = "video"
 
 
 class MediaPlayer(Entity):

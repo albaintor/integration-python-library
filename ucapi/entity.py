@@ -147,3 +147,41 @@ class Entity:
             return await handler(self, cmd_id, params, websocket=websocket)
 
         return await handler(self, cmd_id, params)
+
+    # pylint: disable=W0613
+    async def browse_media(
+        self,
+        params: dict[str, Any],
+        *,
+        websocket: Any,
+    ) -> dict[str, Any] | StatusCodes:
+        """
+        Execute entity browsing request.
+
+        Returns NOT_IMPLEMENTED if no handler is installed.
+
+        :param params: browsing parameters
+        :param websocket: optional websocket connection. Allows for directed event
+                          callbacks instead of broadcasts.
+        :return: browsing response or status code if any error occurs
+        """
+        return StatusCodes.NOT_IMPLEMENTED
+
+    # pylint: disable=W0613
+    async def search_media(
+        self,
+        params: dict[str, Any],
+        *,
+        websocket: Any,
+    ) -> dict[str, Any] | StatusCodes:
+        """
+        Execute media search request.
+
+        Returns NOT_IMPLEMENTED if no handler is installed.
+
+        :param params: search parameters
+        :param websocket: optional websocket connection. Allows for directed event
+                          callbacks instead of broadcasts.
+        :return: search response or status code if any error occurs
+        """
+        return StatusCodes.NOT_IMPLEMENTED
