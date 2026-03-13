@@ -230,10 +230,12 @@ class IntegrationAPI:
                 # Distinguish between text (str) and binary (bytes-like) messages
                 if isinstance(message, str):
                     # JSON text message
-                    await self._process_ws_message(websocket, message)
+                    asyncio.create_task(self._process_ws_message(websocket, message))
                 elif isinstance(message, (bytes, bytearray, memoryview)):
                     # Binary message (protobuf in future)
-                    await self._process_ws_binary_message(websocket, bytes(message))
+                    asyncio.create_task(
+                        self._process_ws_binary_message(websocket, bytes(message))
+                    )
                 else:
                     _LOG.warning(
                         "[%s] WS: Unsupported message type %s",
