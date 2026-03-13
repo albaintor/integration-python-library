@@ -1499,6 +1499,11 @@ class IntegrationAPI:
     ##############
 
     @property
+    def clients(self) -> set:
+        """Return all clients."""
+        return self._clients.copy()
+
+    @property
     def client_count(self) -> int:
         """Return number of WebSocket clients."""
         return len(self._clients)
