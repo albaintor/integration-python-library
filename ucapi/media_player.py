@@ -6,7 +6,7 @@ Media-player entity definitions.
 """
 
 import logging
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 from .api_definitions import (
@@ -83,6 +83,7 @@ class Features(str, Enum):
     BROWSE_MEDIA = "browse_media"
     SEARCH_MEDIA = "search_media"
     SEARCH_MEDIA_CLASSES = "search_media_classes"
+    PLAY_MEDIA_ACTION = "play_media_action"
 
 
 class Attributes(str, Enum):
@@ -204,7 +205,7 @@ class RepeatMode(str, Enum):
     ONE = "ONE"
 
 
-class MediaPlayAction(str, Enum):
+class MediaPlayAction(StrEnum):
     """Media Play actions."""
 
     PLAY_NOW = "PLAY_NOW"

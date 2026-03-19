@@ -34,12 +34,10 @@ from .api_definitions import (
     BrowseMediaMsgData,
     BrowseOptions,
     BrowseResults,
-    PagingOptions,
-    SearchMediaFilter,
     SearchMediaMsgData,
     SearchOptions,
-    WsMsgEvents,
     SearchResults,
+    WsMsgEvents,
 )
 from .entities import Entities
 from .entity import EntityTypes
@@ -1036,7 +1034,7 @@ class IntegrationAPI:
                 await self._send_ws_response(
                     websocket,
                     req_id,
-                    WsMsgEvents.MEDIA_BROWSE,
+                    WsMsgEvents.MEDIA_SEARCH,
                     asdict(result),
                     StatusCodes.OK,
                 )

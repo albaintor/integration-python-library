@@ -6,7 +6,7 @@ API definitions.
 """
 
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, StrEnum
 from typing import Any, Awaitable, Callable, TypeAlias
 
 
@@ -360,7 +360,7 @@ class AssistantEvent:
     data: AssistantEventData | None = None
 
 
-class MediaContentType(str, Enum):
+class MediaContentType(StrEnum):
     """Media content types for media browsing."""
 
     ALBUM = "album"
@@ -386,7 +386,7 @@ class MediaContentType(str, Enum):
     VIDEO = "video"
 
 
-class MediaClass(str, Enum):
+class MediaClass(StrEnum):
     """Media classes for media browsing."""
 
     ALBUM = "album"
@@ -529,7 +529,7 @@ class BrowseMediaMsgData(BrowseOptions):
 
     entity_id: str
 
-    def __post_init__(self):
+    def __post_init__(self):  # pylint: disable=W0246
         super().__post_init__()
 
 
@@ -595,7 +595,7 @@ class BrowseResults:
 @dataclass
 class SearchResults:
     """
-    Browsing media results.
+    Searching media results.
 
     Attributes:
         media (list[BrowseMediaItem]):
