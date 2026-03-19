@@ -5,11 +5,21 @@ Media-player entity definitions.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
+import logging
 from enum import Enum
 from typing import Any
 
-from .api_definitions import CommandHandler
+from .api_definitions import (
+    BrowseOptions,
+    BrowseResults,
+    CommandHandler,
+    SearchOptions,
+    SearchResults,
+    StatusCodes,
+)
 from .entity import Entity, EntityTypes
+
+_LOG = logging.getLogger(__name__)
 
 
 class States(str, Enum):
@@ -202,56 +212,6 @@ class MediaPlayAction(str, Enum):
     ADD_TO_QUEUE = "ADD_TO_QUEUE"
 
 
-class MediaContent(str, Enum):
-    """Media content types for media browsing."""
-
-    ALBUM = "album"
-    APP = "app"
-    APPS = "apps"
-    ARTIST = "artist"
-    CHANNEL = "channel"
-    CHANNELS = "channels"
-    COMPOSER = "composer"
-    EPISODE = "episode"
-    GAME = "game"
-    GENRE = "genre"
-    IMAGE = "image"
-    MOVIE = "movie"
-    MUSIC = "music"
-    PLAYLIST = "playlist"
-    PODCAST = "podcast"
-    RADIO = "radio"
-    SEASON = "season"
-    TRACK = "track"
-    TV_SHOW = "tv_show"
-    URL = "url"
-    VIDEO = "video"
-
-
-class MediaClass(str, Enum):
-    """Media classes for media browsing."""
-
-    ALBUM = "album"
-    APP = "app"
-    ARTIST = "artist"
-    CHANNEL = "channel"
-    COMPOSER = "composer"
-    DIRECTORY = "directory"
-    EPISODE = "episode"
-    GAME = "game"
-    GENRE = "genre"
-    IMAGE = "image"
-    MOVIE = "movie"
-    MUSIC = "music"
-    PLAYLIST = "playlist"
-    PODCAST = "podcast"
-    SEASON = "season"
-    TRACK = "track"
-    TV_SHOW = "tv_show"
-    URL = "url"
-    VIDEO = "video"
-
-
 class MediaPlayer(Entity):
     """
     Media-player entity class.
@@ -295,3 +255,35 @@ class MediaPlayer(Entity):
             area=area,
             cmd_handler=cmd_handler,
         )
+
+    async def browse(self, options: BrowseOptions) -> BrowseResults | StatusCodes:
+        """
+        Execute entity browsing request.
+
+        Returns NOT_IMPLEMENTED if no handler is installed.
+
+        :param options: browsing parameters
+        :return: browsing response or status code if any error occurs
+        """
+        _LOG.warning(
+            "Media browsing not supported for %s. Request: %s",
+            self.id,
+            options,
+        )
+        return StatusCodes.NOT_IMPLEMENTED
+
+    async def search(self, query: SearchOptions) -> SearchResults | StatusCodes:
+        """
+        Execute media search request.
+
+        Returns NOT_IMPLEMENTED if no handler is installed.
+
+        :param query: search parameters
+        :return: search response or status code if any error occurs
+        """
+        _LOG.warning(
+            "Media searching not supported for %s. Request: %s",
+            self.id,
+            query,
+        )
+        return StatusCodes.NOT_IMPLEMENTED

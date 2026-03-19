@@ -30,9 +30,18 @@ from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
 from . import StatusCodes
 from . import api_definitions as uc
+from .api_definitions import (
+    BrowseMediaMsgData,
+    BrowseOptions,
+    BrowseResults,
+    SearchMediaMsgData,
+    SearchOptions,
+    WsMsgEvents,
+)
 from .entities import Entities
 from .entity import EntityTypes
 from .media_player import Attributes as MediaAttr
+from .media_player import MediaPlayer
 
 # Classes are dynamically created at runtime using the Google Protobuf builder pattern.
 # pylint: disable=no-name-in-module
@@ -677,6 +686,7 @@ class IntegrationAPI:
         ctx.session.end(VoiceEndReason.TIMEOUT)
         await self._cleanup_voice_session(key)
 
+    # pylint: disable=R0912
     async def _handle_ws_request_msg(
         self, websocket, msg: str, req_id: int, msg_data: dict[str, Any] | None
     ) -> None:
@@ -946,24 +956,40 @@ class IntegrationAPI:
             return
 
         entity = self.configured_entities.get(entity_id)
-        if entity is None:
+        if entity is None or not isinstance(entity, MediaPlayer):
             _LOG.warning(
-                "Cannot browse media for '%s': no configured entity found",
+                "Cannot browse media for '%s':  no configured entity found or entity is not a media-player",
                 entity_id,
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
             return
-
-        result = await entity.browse_media(
-            msg_data,
-            websocket=websocket,
-        )
-        if isinstance(result, dict):
-            await self._send_ws_response(
-                websocket, req_id, "media_browse", result, StatusCodes.OK
+        try:
+            data = BrowseMediaMsgData(**msg_data)
+            result = await entity.browse(
+                BrowseOptions(
+                    media_id=data.media_id,
+                    media_type=data.media_type,
+                    stable_ids=data.stable_ids,
+                    paging=data.paging,
+                )
             )
-        else:
-            await self.acknowledge_command(websocket, req_id, result)
+            if isinstance(result, BrowseResults):
+                await self._send_ws_response(
+                    websocket,
+                    req_id,
+                    WsMsgEvents.MEDIA_BROWSE,
+                    asdict(result),
+                    StatusCodes.OK,
+                )
+            else:
+                await self.acknowledge_command(websocket, req_id, result)
+        except TypeError:
+            _LOG.error(
+                "Cannot browse media for '%s':  wrong format %s", entity_id, msg_data
+            )
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.BAD_REQUEST
+            )
 
     async def _search_media(
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
@@ -984,24 +1010,42 @@ class IntegrationAPI:
             return
 
         entity = self.configured_entities.get(entity_id)
-        if entity is None:
+        if entity is None or not isinstance(entity, MediaPlayer):
             _LOG.warning(
-                "Cannot search media for '%s': no configured entity found",
+                "Cannot search media for '%s':  no configured entity found or entity is not a media-player",
                 entity_id,
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
             return
-
-        result = await entity.search_media(
-            msg_data,
-            websocket=websocket,
-        )
-        if isinstance(result, dict):
-            await self._send_ws_response(
-                websocket, req_id, "media_search", result, StatusCodes.OK
+        try:
+            data = SearchMediaMsgData(**msg_data)
+            result = await entity.search(
+                SearchOptions(
+                    query=data.query,
+                    media_id=data.media_id,
+                    media_type=data.media_type,
+                    stable_ids=data.stable_ids,
+                    filter=data.filter,
+                    paging=data.paging,
+                )
             )
-        else:
-            await self.acknowledge_command(websocket, req_id, result)
+            if isinstance(result, BrowseResults):
+                await self._send_ws_response(
+                    websocket,
+                    req_id,
+                    WsMsgEvents.MEDIA_BROWSE,
+                    asdict(result),
+                    StatusCodes.OK,
+                )
+            else:
+                await self.acknowledge_command(websocket, req_id, result)
+        except TypeError:
+            _LOG.error(
+                "Cannot browse media for '%s':  wrong format %s", entity_id, msg_data
+            )
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.BAD_REQUEST
+            )
 
     async def _setup_driver(
         self, websocket, req_id: int, msg_data: dict[str, Any] | None

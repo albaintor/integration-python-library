@@ -5,7 +5,8 @@ API definitions.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
-from dataclasses import dataclass
+import dataclasses
+from dataclasses import dataclass, field, fields
 from enum import Enum, IntEnum
 from typing import Any, Awaitable, Callable, TypeAlias
 
@@ -80,6 +81,8 @@ class WsMsgEvents(str, Enum):
     DRIVER_SETUP_CHANGE = "driver_setup_change"
     ABORT_DRIVER_SETUP = "abort_driver_setup"
     ASSISTANT_EVENT = "assistant_event"
+    MEDIA_BROWSE = "media_browse"
+    MEDIA_SEARCH = "media_search"
 
 
 class Events(str, Enum):
@@ -356,3 +359,222 @@ class AssistantEvent:
     entity_id: str
     session_id: int
     data: AssistantEventData | None = None
+
+
+class MediaContentType(str, Enum):
+    """Media content types for media browsing."""
+
+    ALBUM = "album"
+    APP = "app"
+    APPS = "apps"
+    ARTIST = "artist"
+    CHANNEL = "channel"
+    CHANNELS = "channels"
+    COMPOSER = "composer"
+    EPISODE = "episode"
+    GAME = "game"
+    GENRE = "genre"
+    IMAGE = "image"
+    MOVIE = "movie"
+    MUSIC = "music"
+    PLAYLIST = "playlist"
+    PODCAST = "podcast"
+    RADIO = "radio"
+    SEASON = "season"
+    TRACK = "track"
+    TV_SHOW = "tv_show"
+    URL = "url"
+    VIDEO = "video"
+
+
+class MediaClass(str, Enum):
+    """Media classes for media browsing."""
+
+    ALBUM = "album"
+    APP = "app"
+    ARTIST = "artist"
+    CHANNEL = "channel"
+    COMPOSER = "composer"
+    DIRECTORY = "directory"
+    EPISODE = "episode"
+    GAME = "game"
+    GENRE = "genre"
+    IMAGE = "image"
+    MOVIE = "movie"
+    MUSIC = "music"
+    PLAYLIST = "playlist"
+    PODCAST = "podcast"
+    SEASON = "season"
+    TRACK = "track"
+    TV_SHOW = "tv_show"
+    URL = "url"
+    VIDEO = "video"
+
+
+@dataclass
+class PagingOptions:
+    """
+    Pagination options.
+
+    Attributes:
+        page (int | None):
+            Page number, 1-based.
+        limit (int | None):
+            Number of items returned per page.
+    """
+
+    page: int | None
+    limit: int | None
+
+
+@dataclass
+class BrowseOptions:
+    """
+    Browsing media options.
+
+    Attributes:
+        media_id (str | None):
+            Optional media content ID to restrict browsing.
+        media_type (MediaContentType | None):
+            Optional media content type to restrict browsing.
+        stable_ids (bool | None):
+            Hint to the integration to return stable media IDs.
+        paging (PagingOptions | None):
+            Optional paging object to limit returned items.
+    """
+
+    media_id: str | None
+    media_type: MediaContentType | None
+    stable_ids: bool | None
+    paging: PagingOptions | None
+
+
+@dataclass
+class SearchMediaFilter:
+    """
+    Search media filter options.
+
+    Attributes:
+        media_classes (list[MediaClass]|None):
+            Optional list of media classes to filter the results.
+        artist (str|None):
+            Optional artist name.
+        album (str|None):
+            Optional album name.
+    """
+
+    media_classes: list[MediaClass] | None
+    artist: str | None
+    album: str | None
+
+
+@dataclass
+class SearchOptions(BrowseOptions):
+    """
+    Browsing media request message.
+
+    Attributes:
+        query (str):
+            Free text search query.
+        filter (MediaContentType | None):
+            Optional media content type to restrict browsing.
+        stable_ids (bool | None):
+            Hint to the integration to return stable media IDs.
+        paging (PagingOptions | None):
+            Optional paging object to limit returned items.
+    """
+
+    query: str
+    filter: SearchMediaFilter | None
+
+
+@dataclass
+class BrowseMediaMsgData(BrowseOptions):
+    """
+    Browsing media request message.
+
+    Attributes:
+        entity_id (str):
+            media-player entity ID to browse.
+    """
+
+    entity_id: str
+
+
+@dataclass
+class SearchMediaMsgData(BrowseOptions):
+    """
+    Search media request message.
+
+    Attributes:
+        entity_id (str):
+            media-player entity ID to browse.
+        query (str):
+            Free text search query.
+        filter (SearchMediaFilter|None):
+            Additional user filter to limit the search scope.
+    """
+
+    entity_id: str
+    query: str
+    filter: SearchMediaFilter | None
+
+
+@dataclass
+class BrowseMediaItem:
+    """Browse Media Item object."""
+
+    title: str
+    media_class: str
+    media_type: str
+    media_id: str
+    can_browse: bool = field(default=False)
+    can_play: bool = field(default=False)
+    can_search: bool = field(default=False)
+    subtitle: str | None = field(default=None)
+    artist: str | None = field(default=None)
+    album: str | None = field(default=None)
+    thumbnail: str | None = field(default=None)
+    duration: int | None = field(default=None)
+    items: list["BrowseMediaItem"] | None = field(default=None)
+
+    def __post_init__(self):
+        """Apply default values on missing fields."""
+        for attribute in fields(self):
+            if (
+                not isinstance(attribute.default, dataclasses.MISSING.__class__)
+                and getattr(self, attribute.name) is None
+            ):
+                setattr(self, attribute.name, attribute.default)
+
+
+@dataclass
+class BrowseResults:
+    """
+    Browsing media results.
+
+    Attributes:
+        media (BrowseMediaItem | None):
+            The browsed media item, or `undefined` if not found.
+        paging (PagingOptions):
+            Pagination metadata for this result page.
+    """
+
+    media: BrowseMediaItem | None
+    paging: PagingOptions
+
+
+@dataclass
+class SearchResults:
+    """
+    Browsing media results.
+
+    Attributes:
+        media (list[BrowseMediaItem]):
+            Array of matching media items. Pass an empty array if no results were found.
+        paging (PagingOptions):
+            Pagination metadata for this result page.
+    """
+
+    media: list[BrowseMediaItem]
+    paging: PagingOptions
