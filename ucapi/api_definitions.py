@@ -512,6 +512,7 @@ class SearchOptions(BrowseOptions):
     filter: SearchMediaFilter | None = None
 
     def __post_init__(self):
+        super().__post_init__()
         if isinstance(self.filter, dict):
             self.filter = SearchMediaFilter(**self.filter)
 
@@ -527,6 +528,9 @@ class BrowseMediaMsgData(BrowseOptions):
     """
 
     entity_id: str
+
+    def __post_init__(self):
+        super().__post_init__()
 
 
 @dataclass(kw_only=True)
@@ -548,6 +552,7 @@ class SearchMediaMsgData(BrowseOptions):
     filter: SearchMediaFilter | None = None
 
     def __post_init__(self):
+        super().__post_init__()
         if isinstance(self.filter, dict):
             self.filter = SearchMediaFilter(**self.filter)
 
