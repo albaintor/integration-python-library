@@ -453,7 +453,7 @@ class BrowseOptions:
     Attributes:
         media_id (str | None):
             Optional media content ID to restrict browsing.
-        media_type (MediaContentType | None):
+        media_type (str | None):
             Optional media content type to restrict browsing.
         stable_ids (bool | None):
             Hint to the integration to return stable media IDs.
@@ -462,13 +462,11 @@ class BrowseOptions:
     """
 
     media_id: str | None = None
-    media_type: MediaContentType | None = None
+    media_type: str | None = None
     stable_ids: bool | None = None
     paging: PagingOptions | None = None
 
     def __post_init__(self):
-        if isinstance(self.media_type, str):
-            self.media_type = MediaContentType(self.media_type)
         if isinstance(self.paging, dict):
             self.paging = PagingOptions(**self.paging)
 
@@ -506,12 +504,8 @@ class SearchOptions(BrowseOptions):
     Attributes:
         query (str):
             Free text search query.
-        filter (MediaContentType | None):
-            Optional media content type to restrict browsing.
-        stable_ids (bool | None):
-            Hint to the integration to return stable media IDs.
-        paging (PagingOptions | None):
-            Optional paging object to limit returned items.
+        filter (SearchMediaFilter | None):
+            Optional media filter to restrict search.
     """
 
     query: str
