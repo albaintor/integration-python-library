@@ -1027,8 +1027,8 @@ class IntegrationAPI:
                     media_id=data.media_id,
                     media_type=data.media_type,
                     stable_ids=data.stable_ids,
-                    filter=SearchMediaFilter(data.filter) if data.filter else None,
-                    paging=PagingOptions(data.paging),
+                    filter=data.filter,
+                    paging=data.paging,
                 )
             )
             if isinstance(result, BrowseResults):
