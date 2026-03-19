@@ -272,18 +272,18 @@ class MediaPlayer(Entity):
         )
         return StatusCodes.NOT_IMPLEMENTED
 
-    async def search(self, query: SearchOptions) -> SearchResults | StatusCodes:
+    async def search(self, options: SearchOptions) -> SearchResults | StatusCodes:
         """
         Execute media search request.
 
         Returns NOT_IMPLEMENTED if no handler is installed.
 
-        :param query: search parameters
+        :param options: search parameters
         :return: search response or status code if any error occurs
         """
         _LOG.warning(
             "Media searching not supported for %s. Request: %s",
             self.id,
-            query,
+            options,
         )
         return StatusCodes.NOT_IMPLEMENTED

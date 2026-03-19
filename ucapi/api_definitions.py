@@ -5,8 +5,7 @@ API definitions.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
-import dataclasses
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass
 from enum import Enum, IntEnum
 from typing import Any, Awaitable, Callable, TypeAlias
 
@@ -423,8 +422,27 @@ class PagingOptions:
             Number of items returned per page.
     """
 
-    page: int | None
-    limit: int | None
+    page: int | None = None
+    limit: int | None = None
+
+
+@dataclass
+class Pagination:
+    """
+    Pagination metadata returned by the client.
+
+    Attributes:
+        page (int):
+            Current page number, 1-based. Must correspond to the requested page.
+        limit (int):
+            Number of items returned in this page (1–100).
+        count (int|None):
+            Optional if known: Total number of available items across all pages.
+    """
+
+    page: int
+    limit: int
+    count: int | None = None
 
 
 @dataclass
@@ -443,10 +461,16 @@ class BrowseOptions:
             Optional paging object to limit returned items.
     """
 
-    media_id: str | None
-    media_type: MediaContentType | None
-    stable_ids: bool | None
-    paging: PagingOptions | None
+    media_id: str | None = None
+    media_type: MediaContentType | None = None
+    stable_ids: bool | None = None
+    paging: PagingOptions | None = None
+
+    def __post_init__(self):
+        if isinstance(self.media_type, str):
+            self.media_type = MediaContentType(self.media_type)
+        if isinstance(self.paging, dict):
+            self.paging = PagingOptions(**self.paging)
 
 
 @dataclass
@@ -463,12 +487,18 @@ class SearchMediaFilter:
             Optional album name.
     """
 
-    media_classes: list[MediaClass] | None
-    artist: str | None
-    album: str | None
+    media_classes: list[MediaClass] | None = None
+    artist: str | None = None
+    album: str | None = None
+
+    def __post_init__(self):
+        if self.media_classes:
+            self.media_classes = [
+                MediaClass(media_class) for media_class in self.media_classes
+            ]
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SearchOptions(BrowseOptions):
     """
     Browsing media request message.
@@ -485,10 +515,14 @@ class SearchOptions(BrowseOptions):
     """
 
     query: str
-    filter: SearchMediaFilter | None
+    filter: SearchMediaFilter | None = None
+
+    def __post_init__(self):
+        if isinstance(self.filter, dict):
+            self.filter = SearchMediaFilter(**self.filter)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class BrowseMediaMsgData(BrowseOptions):
     """
     Browsing media request message.
@@ -501,7 +535,7 @@ class BrowseMediaMsgData(BrowseOptions):
     entity_id: str
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SearchMediaMsgData(BrowseOptions):
     """
     Search media request message.
@@ -517,7 +551,11 @@ class SearchMediaMsgData(BrowseOptions):
 
     entity_id: str
     query: str
-    filter: SearchMediaFilter | None
+    filter: SearchMediaFilter | None = None
+
+    def __post_init__(self):
+        if isinstance(self.filter, dict):
+            self.filter = SearchMediaFilter(**self.filter)
 
 
 @dataclass
@@ -528,27 +566,18 @@ class BrowseMediaItem:
     media_class: str
     media_type: str
     media_id: str
-    can_browse: bool = field(default=False)
-    can_play: bool = field(default=False)
-    can_search: bool = field(default=False)
-    subtitle: str | None = field(default=None)
-    artist: str | None = field(default=None)
-    album: str | None = field(default=None)
-    thumbnail: str | None = field(default=None)
-    duration: int | None = field(default=None)
-    items: list["BrowseMediaItem"] | None = field(default=None)
-
-    def __post_init__(self):
-        """Apply default values on missing fields."""
-        for attribute in fields(self):
-            if (
-                not isinstance(attribute.default, dataclasses.MISSING.__class__)
-                and getattr(self, attribute.name) is None
-            ):
-                setattr(self, attribute.name, attribute.default)
+    can_browse: bool | None = None
+    can_play: bool | None = None
+    can_search: bool | None = None
+    subtitle: str | None = None
+    artist: str | None = None
+    album: str | None = None
+    thumbnail: str | None = None
+    duration: int | None = None
+    items: list["BrowseMediaItem"] | None = None
 
 
-@dataclass
+@dataclass(kw_only=True)
 class BrowseResults:
     """
     Browsing media results.
@@ -556,12 +585,12 @@ class BrowseResults:
     Attributes:
         media (BrowseMediaItem | None):
             The browsed media item, or `undefined` if not found.
-        paging (PagingOptions):
+        pagination (Pagination):
             Pagination metadata for this result page.
     """
 
-    media: BrowseMediaItem | None
-    paging: PagingOptions
+    media: BrowseMediaItem | None = None
+    pagination: Pagination
 
 
 @dataclass
@@ -572,9 +601,9 @@ class SearchResults:
     Attributes:
         media (list[BrowseMediaItem]):
             Array of matching media items. Pass an empty array if no results were found.
-        paging (PagingOptions):
+        pagination (Pagination):
             Pagination metadata for this result page.
     """
 
     media: list[BrowseMediaItem]
-    paging: PagingOptions
+    pagination: Pagination

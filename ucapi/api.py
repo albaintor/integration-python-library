@@ -34,6 +34,8 @@ from .api_definitions import (
     BrowseMediaMsgData,
     BrowseOptions,
     BrowseResults,
+    PagingOptions,
+    SearchMediaFilter,
     SearchMediaMsgData,
     SearchOptions,
     WsMsgEvents,
@@ -1025,8 +1027,8 @@ class IntegrationAPI:
                     media_id=data.media_id,
                     media_type=data.media_type,
                     stable_ids=data.stable_ids,
-                    filter=data.filter,
-                    paging=data.paging,
+                    filter=SearchMediaFilter(data.filter) if data.filter else None,
+                    paging=PagingOptions(data.paging),
                 )
             )
             if isinstance(result, BrowseResults):
