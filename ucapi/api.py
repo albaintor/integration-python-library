@@ -39,6 +39,7 @@ from .api_definitions import (
     SearchMediaMsgData,
     SearchOptions,
     WsMsgEvents,
+    SearchResults,
 )
 from .entities import Entities
 from .entity import EntityTypes
@@ -1031,7 +1032,7 @@ class IntegrationAPI:
                     paging=data.paging,
                 )
             )
-            if isinstance(result, BrowseResults):
+            if isinstance(result, SearchResults):
                 await self._send_ws_response(
                     websocket,
                     req_id,
@@ -1043,7 +1044,7 @@ class IntegrationAPI:
                 await self.acknowledge_command(websocket, req_id, result)
         except TypeError:
             _LOG.error(
-                "Cannot browse media for '%s':  wrong format %s", entity_id, msg_data
+                "Cannot browse media for '%s': wrong format %s", entity_id, msg_data
             )
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
