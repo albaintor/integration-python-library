@@ -5,11 +5,21 @@ Media-player entity definitions.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
-from enum import Enum
+import logging
+from enum import Enum, StrEnum
 from typing import Any
 
-from .api_definitions import CommandHandler
+from .api_definitions import (
+    BrowseOptions,
+    BrowseResults,
+    CommandHandler,
+    SearchOptions,
+    SearchResults,
+    StatusCodes,
+)
 from .entity import Entity, EntityTypes
+
+_LOG = logging.getLogger(__name__)
 
 
 class States(str, Enum):
@@ -73,6 +83,7 @@ class Features(str, Enum):
     BROWSE_MEDIA = "browse_media"
     SEARCH_MEDIA = "search_media"
     SEARCH_MEDIA_CLASSES = "search_media_classes"
+    PLAY_MEDIA_ACTION = "play_media_action"
 
 
 class Attributes(str, Enum):
@@ -95,6 +106,10 @@ class Attributes(str, Enum):
     SOURCE_LIST = "source_list"
     SOUND_MODE = "sound_mode"
     SOUND_MODE_LIST = "sound_mode_list"
+    MEDIA_ID = "media_id"
+    MEDIA_PLAYLIST = "media_playlist"
+    PLAY_MEDIA_ACTION = "play_media_action"
+    SEARCH_MEDIA_CLASSES = "search_media_classes"
 
 
 class Commands(str, Enum):
@@ -157,6 +172,7 @@ class Commands(str, Enum):
     SETTINGS = "settings"
     SEARCH = "search"
     PLAY_MEDIA = "play_media"
+    CLEAR_PLAYLIST = "clear_playlist"
 
 
 class DeviceClasses(str, Enum):
@@ -194,62 +210,12 @@ class RepeatMode(str, Enum):
     ONE = "ONE"
 
 
-class MediaPlayAction(str, Enum):
+class MediaPlayAction(StrEnum):
     """Media Play actions."""
 
     PLAY_NOW = "PLAY_NOW"
     PLAY_NEXT = "PLAY_NEXT"
     ADD_TO_QUEUE = "ADD_TO_QUEUE"
-
-
-class MediaContent(str, Enum):
-    """Media content types for media browsing."""
-
-    ALBUM = "album"
-    APP = "app"
-    APPS = "apps"
-    ARTIST = "artist"
-    CHANNEL = "channel"
-    CHANNELS = "channels"
-    COMPOSER = "composer"
-    EPISODE = "episode"
-    GAME = "game"
-    GENRE = "genre"
-    IMAGE = "image"
-    MOVIE = "movie"
-    MUSIC = "music"
-    PLAYLIST = "playlist"
-    PODCAST = "podcast"
-    RADIO = "radio"
-    SEASON = "season"
-    TRACK = "track"
-    TV_SHOW = "tv_show"
-    URL = "url"
-    VIDEO = "video"
-
-
-class MediaClass(str, Enum):
-    """Media classes for media browsing."""
-
-    ALBUM = "album"
-    APP = "app"
-    ARTIST = "artist"
-    CHANNEL = "channel"
-    COMPOSER = "composer"
-    DIRECTORY = "directory"
-    EPISODE = "episode"
-    GAME = "game"
-    GENRE = "genre"
-    IMAGE = "image"
-    MOVIE = "movie"
-    MUSIC = "music"
-    PLAYLIST = "playlist"
-    PODCAST = "podcast"
-    SEASON = "season"
-    TRACK = "track"
-    TV_SHOW = "tv_show"
-    URL = "url"
-    VIDEO = "video"
 
 
 class MediaPlayer(Entity):
@@ -295,3 +261,35 @@ class MediaPlayer(Entity):
             area=area,
             cmd_handler=cmd_handler,
         )
+
+    async def browse(self, options: BrowseOptions) -> BrowseResults | StatusCodes:
+        """
+        Execute entity browsing request.
+
+        Returns NOT_IMPLEMENTED if no handler is installed.
+
+        :param options: browsing parameters
+        :return: browsing response or status code if any error occurs
+        """
+        _LOG.warning(
+            "Media browsing not supported for %s. Request: %s",
+            self.id,
+            options,
+        )
+        return StatusCodes.NOT_IMPLEMENTED
+
+    async def search(self, options: SearchOptions) -> SearchResults | StatusCodes:
+        """
+        Execute media search request.
+
+        Returns NOT_IMPLEMENTED if no handler is installed.
+
+        :param options: search parameters
+        :return: search response or status code if any error occurs
+        """
+        _LOG.warning(
+            "Media searching not supported for %s. Request: %s",
+            self.id,
+            options,
+        )
+        return StatusCodes.NOT_IMPLEMENTED
