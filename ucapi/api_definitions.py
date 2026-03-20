@@ -403,6 +403,7 @@ class MediaClass(StrEnum):
     MUSIC = "music"
     PLAYLIST = "playlist"
     PODCAST = "podcast"
+    RADIO = "radio"
     SEASON = "season"
     TRACK = "track"
     TV_SHOW = "tv_show"
@@ -592,6 +593,9 @@ class BrowseResults:
     pagination: Pagination
 
 
+SearchMediaItem = BrowseMediaItem
+
+
 @dataclass
 class SearchResults:
     """
@@ -604,5 +608,5 @@ class SearchResults:
             Pagination metadata for this result page.
     """
 
-    media: list[BrowseMediaItem]
+    media: list[SearchMediaItem]
     pagination: Pagination

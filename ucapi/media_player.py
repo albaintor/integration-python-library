@@ -106,6 +106,10 @@ class Attributes(str, Enum):
     SOURCE_LIST = "source_list"
     SOUND_MODE = "sound_mode"
     SOUND_MODE_LIST = "sound_mode_list"
+    MEDIA_ID = "media_id"
+    MEDIA_PLAYLIST = "media_playlist"
+    PLAY_MEDIA_ACTION = "play_media_action"
+    SEARCH_MEDIA_CLASSES = "search_media_classes"
 
 
 class Commands(str, Enum):
@@ -168,6 +172,7 @@ class Commands(str, Enum):
     SETTINGS = "settings"
     SEARCH = "search"
     PLAY_MEDIA = "play_media"
+    CLEAR_PLAYLIST = "clear_playlist"
 
 
 class DeviceClasses(str, Enum):
