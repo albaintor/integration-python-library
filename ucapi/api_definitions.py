@@ -468,6 +468,7 @@ class BrowseOptions:
     paging: PagingOptions | None = None
 
     def __post_init__(self):
+        """Encode custom fields."""
         if isinstance(self.paging, dict):
             self.paging = PagingOptions(**self.paging)
 
@@ -491,6 +492,7 @@ class SearchMediaFilter:
     album: str | None = None
 
     def __post_init__(self):
+        """Encode custom fields."""
         if self.media_classes:
             self.media_classes = [
                 MediaClass(media_class) for media_class in self.media_classes
@@ -513,6 +515,7 @@ class SearchOptions(BrowseOptions):
     filter: SearchMediaFilter | None = None
 
     def __post_init__(self):
+        """Encode custom fields."""
         super().__post_init__()
         if isinstance(self.filter, dict):
             self.filter = SearchMediaFilter(**self.filter)
@@ -531,6 +534,7 @@ class BrowseMediaMsgData(BrowseOptions):
     entity_id: str
 
     def __post_init__(self):  # pylint: disable=W0246
+        """Encode custom fields."""
         super().__post_init__()
 
 
@@ -553,6 +557,7 @@ class SearchMediaMsgData(BrowseOptions):
     filter: SearchMediaFilter | None = None
 
     def __post_init__(self):
+        """Encode custom fields."""
         super().__post_init__()
         if isinstance(self.filter, dict):
             self.filter = SearchMediaFilter(**self.filter)
