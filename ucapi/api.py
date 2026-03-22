@@ -28,7 +28,6 @@ from websockets.exceptions import ConnectionClosedOK
 from zeroconf import IPVersion
 from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
-from . import StatusCodes
 from . import api_definitions as uc
 from .api_definitions import (
     BrowseMediaMsgData,
@@ -980,7 +979,7 @@ class IntegrationAPI:
                     req_id,
                     WsMsgEvents.MEDIA_BROWSE,
                     asdict(result),
-                    StatusCodes.OK,
+                    uc.StatusCodes.OK,
                 )
             else:
                 await self.acknowledge_command(websocket, req_id, result)
@@ -1036,7 +1035,7 @@ class IntegrationAPI:
                     req_id,
                     WsMsgEvents.MEDIA_SEARCH,
                     asdict(result),
-                    StatusCodes.OK,
+                    uc.StatusCodes.OK,
                 )
             else:
                 await self.acknowledge_command(websocket, req_id, result)
