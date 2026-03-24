@@ -9,14 +9,14 @@ for the media-player entity documentation.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
 from .api_definitions import (
     CommandHandler,
     Pagination,
-    PagingOptions,
+    Paging,
     StatusCodes,
 )
 from .entity import Entity, EntityTypes
@@ -318,19 +318,31 @@ class BrowseOptions:
             Optional media content type to restrict browsing.
         stable_ids (bool | None):
             Hint to the integration to return stable media IDs.
-        paging (PagingOptions | None):
-            Optional paging object to limit returned items.
+        paging (Paging):
+            Paging object to limit returned items. Defaults to a default Paging instance.
     """
 
     media_id: str | None = None
     media_type: str | None = None
     stable_ids: bool | None = None
-    paging: PagingOptions | None = None
+    paging: Paging = field(default_factory=Paging)
 
-    def __post_init__(self):
-        """Encode custom fields."""
-        if isinstance(self.paging, dict):
-            self.paging = PagingOptions(**self.paging)
+    @classmethod
+    def from_dict(cls, data: dict) -> "BrowseOptions":
+        """Construct from a raw dictionary (e.g., from JSON)."""
+        paging_data = data.get("paging")
+        paging = (
+            Paging.from_dict(paging_data)
+            if isinstance(paging_data, dict)
+            else paging_data
+        )
+
+        return cls(
+            media_id=data.get("media_id"),
+            media_type=data.get("media_type"),
+            stable_ids=data.get("stable_ids"),
+            paging=paging if paging is not None else Paging(),
+        )
 
 
 @dataclass
@@ -350,6 +362,15 @@ class SearchMediaFilter:
     media_classes: list[MediaClass] | None = None
     artist: str | None = None
     album: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SearchMediaFilter":
+        """Construct from a raw dictionary (e.g., from JSON)."""
+        return cls(
+            media_classes=data.get("media_classes"),
+            artist=data.get("artist"),
+            album=data.get("album"),
+        )
 
     def __post_init__(self):
         """Encode custom fields."""
@@ -374,11 +395,31 @@ class SearchOptions(BrowseOptions):
     query: str
     filter: SearchMediaFilter | None = None
 
-    def __post_init__(self):
-        """Encode custom fields."""
-        super().__post_init__()
-        if isinstance(self.filter, dict):
-            self.filter = SearchMediaFilter(**self.filter)
+    @classmethod
+    def from_dict(cls, data: dict) -> "SearchOptions":
+        """Construct from a raw dictionary (e.g., from JSON)."""
+        paging_data = data.get("paging")
+        paging = (
+            Paging.from_dict(paging_data)
+            if isinstance(paging_data, dict)
+            else paging_data
+        )
+
+        filter_data = data.get("filter")
+        search_filter = (
+            SearchMediaFilter.from_dict(filter_data)
+            if isinstance(filter_data, dict)
+            else filter_data
+        )
+
+        return cls(
+            query=data.get("query", ""),
+            media_id=data.get("media_id"),
+            media_type=data.get("media_type"),
+            stable_ids=data.get("stable_ids"),
+            paging=paging if paging is not None else Paging(),
+            filter=search_filter,
+        )
 
 
 @dataclass

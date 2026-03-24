@@ -360,23 +360,46 @@ class AssistantEvent:
     data: AssistantEventData | None = None
 
 
-@dataclass
-class PagingOptions:
+@dataclass(frozen=True)
+class Paging:
     """
-    Pagination options.
+    Paging options.
 
     Attributes:
-        page (int | None):
+        page (int):
             Page number, 1-based.
-        limit (int | None):
+        limit (int):
             Number of items returned per page.
     """
 
-    page: int | None = None
-    limit: int | None = None
+    page: int = 1
+    limit: int = 10
+
+    DEFAULT_PAGE = 1
+    DEFAULT_LIMIT = 10
+
+    def __post_init__(self):
+        """Validate fields."""
+        if self.page < 1:
+            raise ValueError(f"Invalid page: {self.page}. Must be >= 1.")
+        if self.limit < 1:
+            raise ValueError(f"Invalid limit: {self.limit}. Must be >= 1.")
+
+    @property
+    def offset(self) -> int:
+        """Calculate 0-based start offset."""
+        return self.limit * (self.page - 1)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Paging":
+        """Construct from a raw dictionary (e.g., from JSON)."""
+        return cls(
+            page=data.get("page", cls.DEFAULT_PAGE),
+            limit=data.get("limit", cls.DEFAULT_LIMIT),
+        )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Pagination:
     """
     Pagination metadata returned by the client.
@@ -385,7 +408,7 @@ class Pagination:
         page (int):
             Current page number, 1-based. Must correspond to the requested page.
         limit (int):
-            Number of items returned in this page (1–100).
+            Number of items returned in this page.
         count (int|None):
             Optional if known: Total number of available items across all pages.
     """
@@ -393,3 +416,12 @@ class Pagination:
     page: int
     limit: int
     count: int | None = None
+
+    def __post_init__(self):
+        """Validate fields."""
+        if self.page < 1:
+            raise ValueError("page must be >= 1")
+        if self.limit < 0:
+            raise ValueError("limit cannot be negative")
+        if self.count is not None and self.count < 0:
+            raise ValueError("count cannot be negative")

@@ -34,10 +34,8 @@ from .entities import Entities
 from .entity import EntityTypes
 from .media_player import Attributes as MediaAttr
 from .media_player import (
-    BrowseOptions,
     BrowseResults,
     MediaPlayer,
-    SearchOptions,
     SearchResults,
 )
 from .msg_definitions import BrowseMediaMsgData, SearchMediaMsgData
@@ -963,15 +961,8 @@ class IntegrationAPI:
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
             return
         try:
-            data = BrowseMediaMsgData(**msg_data)
-            result = await entity.browse(
-                BrowseOptions(
-                    media_id=data.media_id,
-                    media_type=data.media_type,
-                    stable_ids=data.stable_ids,
-                    paging=data.paging,
-                )
-            )
+            msg_data = BrowseMediaMsgData(**msg_data)
+            result = await entity.browse(msg_data)
             if isinstance(result, BrowseResults):
                 await self._send_ws_response(
                     websocket,
@@ -1018,16 +1009,8 @@ class IntegrationAPI:
             return
         try:
             data = SearchMediaMsgData(**msg_data)
-            result = await entity.search(
-                SearchOptions(
-                    query=data.query,
-                    media_id=data.media_id,
-                    media_type=data.media_type,
-                    stable_ids=data.stable_ids,
-                    filter=data.filter,
-                    paging=data.paging,
-                )
-            )
+            result = await entity.search(data)
+
             if isinstance(result, SearchResults):
                 await self._send_ws_response(
                     websocket,
