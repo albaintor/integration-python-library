@@ -390,10 +390,8 @@ class BrowseMediaItem:
     subtitle: str | None = None
     artist: str | None = None
     album: str | None = None
-    media_class: str | None = None
-    """Known media classes are defined in the ``MediaClass`` enum."""
-    media_type: str | None = None
-    """Known media content types are defined in the ``MediaContentType`` enum."""
+    media_class: MediaClass | str | None = None
+    media_type: MediaContentType | str | None = None
     can_browse: bool | None = None
     can_play: bool | None = None
     can_search: bool | None = None
