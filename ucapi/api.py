@@ -29,19 +29,18 @@ from zeroconf import IPVersion
 from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
 from . import api_definitions as uc
-from .api_definitions import (
-    BrowseMediaMsgData,
-    BrowseOptions,
-    BrowseResults,
-    SearchMediaMsgData,
-    SearchOptions,
-    SearchResults,
-    WsMsgEvents,
-)
+from .api_definitions import WsMsgEvents
 from .entities import Entities
 from .entity import EntityTypes
 from .media_player import Attributes as MediaAttr
-from .media_player import MediaPlayer
+from .media_player import (
+    BrowseOptions,
+    BrowseResults,
+    MediaPlayer,
+    SearchOptions,
+    SearchResults,
+)
+from .msg_definitions import BrowseMediaMsgData, SearchMediaMsgData
 
 # Classes are dynamically created at runtime using the Google Protobuf builder pattern.
 # pylint: disable=no-name-in-module
@@ -941,7 +940,7 @@ class IntegrationAPI:
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
     ) -> None:
         if not msg_data:
-            _LOG.warning("Ignoring entity command: called with empty msg_data")
+            _LOG.warning("Ignoring browse_media command: called with empty msg_data")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
@@ -949,7 +948,7 @@ class IntegrationAPI:
 
         entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
         if entity_id is None:
-            _LOG.warning("Ignoring command: missing entity_id")
+            _LOG.warning("Ignoring browse_media command: missing entity_id")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
@@ -958,7 +957,7 @@ class IntegrationAPI:
         entity = self.configured_entities.get(entity_id)
         if entity is None or not isinstance(entity, MediaPlayer):
             _LOG.warning(
-                "Cannot browse media for '%s':  no configured entity found or entity is not a media-player",
+                "Cannot browse media for '%s': no configured entity found or entity is not a media-player",
                 entity_id,
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
@@ -985,7 +984,7 @@ class IntegrationAPI:
                 await self.acknowledge_command(websocket, req_id, result)
         except TypeError:
             _LOG.error(
-                "Cannot browse media for '%s':  wrong format %s", entity_id, msg_data
+                "Cannot browse media for '%s': wrong format %s", entity_id, msg_data
             )
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
@@ -995,7 +994,7 @@ class IntegrationAPI:
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
     ) -> None:
         if not msg_data:
-            _LOG.warning("Ignoring entity command: called with empty msg_data")
+            _LOG.warning("Ignoring search_media command: called with empty msg_data")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
@@ -1003,7 +1002,7 @@ class IntegrationAPI:
 
         entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
         if entity_id is None:
-            _LOG.warning("Ignoring command: missing entity_id")
+            _LOG.warning("Ignoring search_media command: missing entity_id")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
@@ -1012,7 +1011,7 @@ class IntegrationAPI:
         entity = self.configured_entities.get(entity_id)
         if entity is None or not isinstance(entity, MediaPlayer):
             _LOG.warning(
-                "Cannot search media for '%s':  no configured entity found or entity is not a media-player",
+                "Cannot search media for '%s': no configured entity found or entity is not a media-player",
                 entity_id,
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
@@ -1041,7 +1040,7 @@ class IntegrationAPI:
                 await self.acknowledge_command(websocket, req_id, result)
         except TypeError:
             _LOG.error(
-                "Cannot browse media for '%s': wrong format %s", entity_id, msg_data
+                "Cannot search media for '%s': wrong format %s", entity_id, msg_data
             )
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST

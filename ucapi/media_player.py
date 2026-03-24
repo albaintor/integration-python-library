@@ -1,20 +1,22 @@
 """
 Media-player entity definitions.
 
+See https://unfoldedcircle.github.io/core-api/entities/entity_media_player.html
+for the media-player entity documentation.
+
 :copyright: (c) 2023 by Unfolded Circle ApS.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
 import logging
-from enum import Enum, StrEnum
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from .api_definitions import (
-    BrowseOptions,
-    BrowseResults,
     CommandHandler,
-    SearchOptions,
-    SearchResults,
+    Pagination,
+    PagingOptions,
     StatusCodes,
 )
 from .entity import Entity, EntityTypes
@@ -22,7 +24,7 @@ from .entity import Entity, EntityTypes
 _LOG = logging.getLogger(__name__)
 
 
-class States(str, Enum):
+class States(StrEnum):
     """Media-player entity states."""
 
     UNAVAILABLE = "UNAVAILABLE"
@@ -35,7 +37,7 @@ class States(str, Enum):
     BUFFERING = "BUFFERING"
 
 
-class Features(str, Enum):
+class Features(StrEnum):
     """Media-player entity features."""
 
     ON_OFF = "on_off"
@@ -109,7 +111,7 @@ class Features(str, Enum):
     """The player supports the play_media action parameter to either play or enqueue."""
 
 
-class Attributes(str, Enum):
+class Attributes(StrEnum):
     """Media-player entity attributes."""
 
     STATE = "state"
@@ -135,7 +137,7 @@ class Attributes(str, Enum):
     SEARCH_MEDIA_CLASSES = "search_media_classes"
 
 
-class Commands(str, Enum):
+class Commands(StrEnum):
     """Media-player entity commands."""
 
     ON = "on"
@@ -221,7 +223,7 @@ class Commands(str, Enum):
     """Remove all items from the playback queue. Current playback behavior is integration-dependent (keep playing the current item or clearing everything)."""
 
 
-class DeviceClasses(str, Enum):
+class DeviceClasses(StrEnum):
     """Media-player entity device classes."""
 
     RECEIVER = "receiver"
@@ -231,24 +233,211 @@ class DeviceClasses(str, Enum):
     TV = "tv"
 
 
-class Options(str, Enum):
+class Options(StrEnum):
     """Media-player entity options."""
 
     SIMPLE_COMMANDS = "simple_commands"
     VOLUME_STEPS = "volume_steps"
 
 
-class MediaType(str, Enum):
-    """Media types."""
+class MediaContentType(StrEnum):
+    """Pre-defined media content types.
 
-    MUSIC = "MUSIC"
-    RADIO = "RADIO"
-    TVSHOW = "TVSHOW"
-    MOVIE = "MOVIE"
-    VIDEO = "VIDEO"
+    The media content type is for playback/content semantics.
+    It represents the type of the media content to play or that is currently playing.
+
+    An integration may return other values, but the UI will most likely handle them as
+    an "unknown media."
+    """
+
+    ALBUM = "album"
+    APP = "app"
+    APPS = "apps"
+    ARTIST = "artist"
+    CHANNEL = "channel"
+    CHANNELS = "channels"
+    COMPOSER = "composer"
+    EPISODE = "episode"
+    GAME = "game"
+    GENRE = "genre"
+    IMAGE = "image"
+    MOVIE = "movie"
+    MUSIC = "music"
+    PLAYLIST = "playlist"
+    PODCAST = "podcast"
+    RADIO = "radio"
+    SEASON = "season"
+    TRACK = "track"
+    TV_SHOW = "tv_show"
+    URL = "url"
+    VIDEO = "video"
 
 
-class RepeatMode(str, Enum):
+class MediaClass(StrEnum):
+    """Pre-defined media classes for media browsing.
+
+    The media class is for browser/structure semantics.
+    It represents how a media item should be presented and organized in the
+    media browser hierarchy.
+
+    An integration may return other values, but the UI will most likely treat them as
+    generic media without custom icons.
+    """
+
+    ALBUM = "album"
+    APP = "app"
+    ARTIST = "artist"
+    CHANNEL = "channel"
+    COMPOSER = "composer"
+    DIRECTORY = "directory"
+    EPISODE = "episode"
+    GAME = "game"
+    GENRE = "genre"
+    IMAGE = "image"
+    MOVIE = "movie"
+    MUSIC = "music"
+    PLAYLIST = "playlist"
+    PODCAST = "podcast"
+    RADIO = "radio"
+    SEASON = "season"
+    TRACK = "track"
+    TV_SHOW = "tv_show"
+    URL = "url"
+    VIDEO = "video"
+
+
+@dataclass
+class BrowseOptions:
+    """
+    Browsing media options.
+
+    Attributes:
+        media_id (str | None):
+            Optional media content ID to restrict browsing.
+        media_type (str | None):
+            Optional media content type to restrict browsing.
+        stable_ids (bool | None):
+            Hint to the integration to return stable media IDs.
+        paging (PagingOptions | None):
+            Optional paging object to limit returned items.
+    """
+
+    media_id: str | None = None
+    media_type: str | None = None
+    stable_ids: bool | None = None
+    paging: PagingOptions | None = None
+
+    def __post_init__(self):
+        """Encode custom fields."""
+        if isinstance(self.paging, dict):
+            self.paging = PagingOptions(**self.paging)
+
+
+@dataclass
+class SearchMediaFilter:
+    """
+    Search media filter options.
+
+    Attributes:
+        media_classes (list[MediaClass]|None):
+            Optional list of media classes to filter the results.
+        artist (str|None):
+            Optional artist name.
+        album (str|None):
+            Optional album name.
+    """
+
+    media_classes: list[MediaClass] | None = None
+    artist: str | None = None
+    album: str | None = None
+
+    def __post_init__(self):
+        """Encode custom fields."""
+        if self.media_classes:
+            self.media_classes = [
+                MediaClass(media_class) for media_class in self.media_classes
+            ]
+
+
+@dataclass(kw_only=True)
+class SearchOptions(BrowseOptions):
+    """
+    Browsing media request message.
+
+    Attributes:
+        query (str):
+            Free text search query.
+        filter (SearchMediaFilter | None):
+            Optional media filter to restrict search.
+    """
+
+    query: str
+    filter: SearchMediaFilter | None = None
+
+    def __post_init__(self):
+        """Encode custom fields."""
+        super().__post_init__()
+        if isinstance(self.filter, dict):
+            self.filter = SearchMediaFilter(**self.filter)
+
+
+@dataclass
+class BrowseMediaItem:
+    """Browse Media Item object."""
+
+    media_id: str
+    title: str
+    subtitle: str | None = None
+    artist: str | None = None
+    album: str | None = None
+    media_class: str | None = None
+    """Known media classes are defined in the ``MediaClass`` enum."""
+    media_type: str | None = None
+    """Known media content types are defined in the ``MediaContentType`` enum."""
+    can_browse: bool | None = None
+    can_play: bool | None = None
+    can_search: bool | None = None
+    thumbnail: str | None = None
+    duration: int | None = None
+    items: list["BrowseMediaItem"] | None = None
+
+
+@dataclass(kw_only=True)
+class BrowseResults:
+    """
+    Browsing media results.
+
+    Attributes:
+        media (BrowseMediaItem | None):
+            The browsed media item, or `undefined` if not found.
+        pagination (Pagination):
+            Pagination metadata for this result page.
+    """
+
+    media: BrowseMediaItem | None = None
+    pagination: Pagination
+
+
+SearchMediaItem = BrowseMediaItem
+
+
+@dataclass
+class SearchResults:
+    """
+    Searching media results.
+
+    Attributes:
+        media (list[BrowseMediaItem]):
+            Array of matching media items. Pass an empty array if no results were found.
+        pagination (Pagination):
+            Pagination metadata for this result page.
+    """
+
+    media: list[SearchMediaItem]
+    pagination: Pagination
+
+
+class RepeatMode(StrEnum):
     """Repeat modes."""
 
     OFF = "OFF"
@@ -285,7 +474,7 @@ class MediaPlayer(Entity):
         cmd_handler: CommandHandler = None,
     ):
         """
-        Create media-player entity instance.
+        Create a media-player entity instance.
 
         :param identifier: entity identifier
         :param name: friendly name
@@ -326,7 +515,7 @@ class MediaPlayer(Entity):
 
     async def search(self, options: SearchOptions) -> SearchResults | StatusCodes:
         """
-        Execute media search request.
+        Execute a media search request.
 
         Returns NOT_IMPLEMENTED if no handler is installed.
 
