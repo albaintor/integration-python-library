@@ -960,26 +960,39 @@ class IntegrationAPI:
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
             return
+
+        # extract request and validate
         try:
-            msg_data = BrowseMediaMsgData(**msg_data)
-            result = await entity.browse(msg_data)
-            if isinstance(result, BrowseResults):
-                await self._send_ws_response(
-                    websocket,
-                    req_id,
-                    WsMsgEvents.MEDIA_BROWSE,
-                    asdict(result),
-                    uc.StatusCodes.OK,
-                )
-            else:
-                await self.acknowledge_command(websocket, req_id, result)
-        except TypeError:
+            data = BrowseMediaMsgData(**msg_data)
+        except (TypeError, ValueError):
             _LOG.error(
                 "Cannot browse media for '%s': wrong format %s", entity_id, msg_data
             )
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
+            return
+
+        # call integration driver to handle browse request
+        try:
+            result = await entity.browse(data)
+        except Exception:  # pylint: disable=W0718
+            _LOG.exception("Failed to call MediaPlayer.browse for '%s'", entity_id)
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.SERVER_ERROR
+            )
+            return
+
+        if isinstance(result, BrowseResults):
+            await self._send_ws_response(
+                websocket,
+                req_id,
+                WsMsgEvents.MEDIA_BROWSE,
+                asdict(result),
+                uc.StatusCodes.OK,
+            )
+        else:
+            await self.acknowledge_command(websocket, req_id, result)
 
     async def _search_media(
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
@@ -1007,27 +1020,37 @@ class IntegrationAPI:
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
             return
+
         try:
             data = SearchMediaMsgData(**msg_data)
-            result = await entity.search(data)
-
-            if isinstance(result, SearchResults):
-                await self._send_ws_response(
-                    websocket,
-                    req_id,
-                    WsMsgEvents.MEDIA_SEARCH,
-                    asdict(result),
-                    uc.StatusCodes.OK,
-                )
-            else:
-                await self.acknowledge_command(websocket, req_id, result)
-        except TypeError:
+        except (TypeError, ValueError):
             _LOG.error(
                 "Cannot search media for '%s': wrong format %s", entity_id, msg_data
             )
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
+            return
+
+        try:
+            result = await entity.search(data)
+        except Exception:  # pylint: disable=W0718
+            _LOG.exception("Failed to call MediaPlayer.search for '%s'", entity_id)
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.SERVER_ERROR
+            )
+            return
+
+        if isinstance(result, SearchResults):
+            await self._send_ws_response(
+                websocket,
+                req_id,
+                WsMsgEvents.MEDIA_SEARCH,
+                asdict(result),
+                uc.StatusCodes.OK,
+            )
+        else:
+            await self.acknowledge_command(websocket, req_id, result)
 
     async def _setup_driver(
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
