@@ -118,10 +118,9 @@ class TestMediaPlayer(unittest.TestCase):
             BrowseMediaItem(media_id="id1", title="Title", album="a" * 256)
 
         # media_class (only when it's a string)
-        with self.assertRaisesRegex(
-            ValueError, "media_class must be at least 1 characters"
-        ):
-            BrowseMediaItem(media_id="id1", title="Title", media_class="")
+        # Note: media class is allowed to be empty!
+        BrowseMediaItem(media_id="id1", title="Title", media_class="")
+
         with self.assertRaisesRegex(
             ValueError, "media_class must be at most 255 characters"
         ):
@@ -130,10 +129,9 @@ class TestMediaPlayer(unittest.TestCase):
         BrowseMediaItem(media_id="id1", title="Title", media_class=MediaClass.ALBUM)
 
         # media_type (only when it's a string)
-        with self.assertRaisesRegex(
-            ValueError, "media_type must be at least 1 characters"
-        ):
-            BrowseMediaItem(media_id="id1", title="Title", media_type="")
+        # Note: media type is allowed to be empty!
+        BrowseMediaItem(media_id="id1", title="Title", media_type="")
+
         with self.assertRaisesRegex(
             ValueError, "media_type must be at most 255 characters"
         ):

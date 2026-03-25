@@ -596,9 +596,9 @@ class BrowseMediaItem:
         if self.album is not None:
             validate_str("album", self.album)
         if isinstance(self.media_class, str):
-            validate_str("media_class", self.media_class)
+            validate_str("media_class", self.media_class, 0)
         if isinstance(self.media_type, str):
-            validate_str("media_type", self.media_type)
+            validate_str("media_type", self.media_type, 0)
         if self.thumbnail is not None:
             validate_str("thumbnail", self.thumbnail, 1, 32768)
 
