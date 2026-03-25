@@ -19,7 +19,7 @@ from .api_definitions import (
     Paging,
     StatusCodes,
 )
-from .entity import Entity, EntityTypes
+from .entity import Entity, EntityTypes, validate_str
 
 _LOG = logging.getLogger(__name__)
 
@@ -581,6 +581,26 @@ class BrowseMediaItem:
     """Child items if this item is a container. Child items may not contain further child items (only one level
     of nesting is supported). A new browse request must be sent for deeper levels.
     """
+
+    def __post_init__(self) -> None:
+        """Validate the object."""
+        # mandatory fields
+        validate_str("media_id", self.media_id)
+        validate_str("title", self.title)
+
+        # optional fields
+        if self.subtitle is not None:
+            validate_str("subtitle", self.subtitle)
+        if self.artist is not None:
+            validate_str("artist", self.artist)
+        if self.album is not None:
+            validate_str("album", self.album)
+        if isinstance(self.media_class, str):
+            validate_str("media_class", self.media_class)
+        if isinstance(self.media_type, str):
+            validate_str("media_type", self.media_type)
+        if self.thumbnail is not None:
+            validate_str("thumbnail", self.thumbnail, 1, 32768)
 
 
 @dataclass(kw_only=True)
