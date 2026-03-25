@@ -456,15 +456,15 @@ class SearchMediaFilter:
     Search media filter options.
 
     Attributes:
-        media_classes (list[MediaClass]|None):
+        media_classes (list[MediaClass | str] | None):
             Optional list of media classes to filter the results.
-        artist (str|None):
+        artist (str | None):
             Optional artist name.
-        album (str|None):
+        album (str | None):
             Optional album name.
     """
 
-    media_classes: list[MediaClass] | None = None
+    media_classes: list[MediaClass | str] | None = None
     artist: str | None = None
     album: str | None = None
 
@@ -481,7 +481,13 @@ class SearchMediaFilter:
         """Encode custom fields."""
         if self.media_classes:
             self.media_classes = [
-                MediaClass(media_class) for media_class in self.media_classes
+                (
+                    # pylint: disable=protected-access
+                    MediaClass(media_class)
+                    if media_class in MediaClass._value2member_map_
+                    else media_class
+                )
+                for media_class in self.media_classes
             ]
 
 
