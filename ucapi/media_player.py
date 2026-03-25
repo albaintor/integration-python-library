@@ -381,19 +381,31 @@ class SearchMediaFilter:
 
 
 @dataclass(kw_only=True)
-class SearchOptions(BrowseOptions):
+class SearchOptions:
     """
-    Browsing media request message.
+    Searching media options.
 
     Attributes:
         query (str):
             Free text search query.
+        media_id (str | None):
+            Optional media content ID to restrict searching.
+        media_type (str | None):
+            Optional media content type to restrict searching.
+        stable_ids (bool | None):
+            Hint to the integration to return stable media IDs.
         filter (SearchMediaFilter | None):
-            Optional media filter to restrict search.
+            Optional media filter to restrict searching.
+        paging (Paging):
+            Paging object to limit returned items. Defaults to a default Paging instance.
     """
 
     query: str
+    media_id: str | None = None
+    media_type: str | None = None
+    stable_ids: bool | None = None
     filter: SearchMediaFilter | None = None
+    paging: Paging = field(default_factory=Paging)
 
     @classmethod
     def from_dict(cls, data: dict) -> "SearchOptions":
@@ -417,8 +429,8 @@ class SearchOptions(BrowseOptions):
             media_id=data.get("media_id"),
             media_type=data.get("media_type"),
             stable_ids=data.get("stable_ids"),
-            paging=paging if paging is not None else Paging(),
             filter=search_filter,
+            paging=paging if paging is not None else Paging(),
         )
 
 
