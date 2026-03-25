@@ -28,41 +28,72 @@ class States(StrEnum):
     """Media-player entity states."""
 
     UNAVAILABLE = "UNAVAILABLE"
+    """The entity is currently not available. The UI will render the entity as inactive until the entity becomes active again."""
     UNKNOWN = "UNKNOWN"
+    """The entity is available but the current state is unknown."""
     ON = "ON"
+    """The media player is switched on"""
     OFF = "OFF"
+    """The media player is switched off"""
     PLAYING = "PLAYING"
+    """The media player is playing something"""
     PAUSED = "PAUSED"
+    """The media player is paused"""
     STANDBY = "STANDBY"
+    """The device is in low power state and accepting commands"""
     BUFFERING = "BUFFERING"
+    """The media player is buffering to start playback"""
 
 
 class Features(StrEnum):
     """Media-player entity features."""
 
     ON_OFF = "on_off"
+    """The media player can be switched on and off."""
     TOGGLE = "toggle"
+    """The media player's power state can be toggled."""
     VOLUME = "volume"
+    """The volume level can be set to a specific level."""
     VOLUME_UP_DOWN = "volume_up_down"
+    """The volume can be adjusted up (louder) and down."""
     MUTE_TOGGLE = "mute_toggle"
+    """The mute state can be toggled."""
     MUTE = "mute"
+    """The volume can be muted."""
     UNMUTE = "unmute"
+    """The volume can be un-muted."""
     PLAY_PAUSE = "play_pause"
+    """The player supports starting and pausing media playback."""
     STOP = "stop"
+    """The player supports stopping media playback."""
     NEXT = "next"
+    """The player supports skipping to the next track."""
     PREVIOUS = "previous"
+    """The player supports returning to the previous track."""
     FAST_FORWARD = "fast_forward"
+    """The player supports fast-forwarding the current track."""
     REWIND = "rewind"
+    """The player supports rewinding the current track."""
     REPEAT = "repeat"
+    """The current track or playlist can be repeated."""
     SHUFFLE = "shuffle"
+    """The player supports random playback / shuffling the current playlist."""
     SEEK = "seek"
+    """The player supports seeking the playback position."""
     MEDIA_DURATION = "media_duration"
+    """The player announces the duration of the current media being played."""
     MEDIA_POSITION = "media_position"
+    """The player announces the current position of the media being played."""
     MEDIA_TITLE = "media_title"
+    """The player announces the media title."""
     MEDIA_ARTIST = "media_artist"
+    """The player announces the media artist."""
     MEDIA_ALBUM = "media_album"
+    """The player announces the media album if music is being played."""
     MEDIA_IMAGE_URL = "media_image_url"
+    """The player provides an image url of the media being played."""
     MEDIA_TYPE = "media_type"
+    """The player announces the content type of media being played."""
     DPAD = "dpad"
     """Directional pad navigation provides cursor_up, _down, _left, _right, _enter commands."""
     NUMPAD = "numpad"
@@ -99,6 +130,8 @@ class Features(StrEnum):
     """The player supports a settings menu."""
     PLAY_MEDIA = "play_media"
     """The player supports playing a specific media item."""
+    PLAY_MEDIA_ACTION = "play_media_action"
+    """The player supports the play_media action parameter to either play or enqueue."""
     CLEAR_PLAYLIST = "clear_playlist"
     """The player allows clearing the active playlist."""
     BROWSE_MEDIA = "browse_media"
@@ -107,59 +140,101 @@ class Features(StrEnum):
     """The player supports searching for media items."""
     SEARCH_MEDIA_CLASSES = "search_media_classes"
     """The player provides a list of media classes as filter for searches."""
-    PLAY_MEDIA_ACTION = "play_media_action"
-    """The player supports the play_media action parameter to either play or enqueue."""
 
 
 class Attributes(StrEnum):
     """Media-player entity attributes."""
 
     STATE = "state"
+    """State of the media player, influenced by the play and power commands."""
     VOLUME = "volume"
+    """Current volume level."""
     MUTED = "muted"
+    """Flag if the volume is muted."""
     MEDIA_DURATION = "media_duration"
+    """Media duration in seconds."""
     MEDIA_POSITION = "media_position"
+    """Current media position in seconds."""
     MEDIA_POSITION_UPDATED_AT = "media_position_updated_at"
+    """Optional timestamp when `media_position` was last updated."""
     MEDIA_TYPE = "media_type"
+    """The content type of media being played. Either a ``MediaContentType`` or a custom value."""
     MEDIA_IMAGE_URL = "media_image_url"
+    """URL to retrieve the album art or an image representing what's being played."""
     MEDIA_TITLE = "media_title"
+    """Currently playing media information."""
     MEDIA_ARTIST = "media_artist"
+    """Currently playing media information."""
     MEDIA_ALBUM = "media_album"
+    """Currently playing media information."""
     REPEAT = "repeat"
+    """Current repeat mode."""
     SHUFFLE = "shuffle"
+    """Shuffle mode on or off."""
     SOURCE = "source"
+    """Currently selected media or input source."""
     SOURCE_LIST = "source_list"
+    """Available media or input sources."""
     SOUND_MODE = "sound_mode"
+    """Currently selected sound mode."""
     SOUND_MODE_LIST = "sound_mode_list"
+    """Available sound modes."""
     MEDIA_ID = "media_id"
+    """The content ID of media being played."""
     MEDIA_PLAYLIST = "media_playlist"
+    """Title of Playlist currently playing."""
     PLAY_MEDIA_ACTION = "play_media_action"
+    """List of supported media play actions in ``MediaPlayAction``."""
     SEARCH_MEDIA_CLASSES = "search_media_classes"
+    """List of ``MediaClass`` values to use as a filter for ``search_media``.
+
+     Custom classes should be avoided.
+     """
 
 
 class Commands(StrEnum):
     """Media-player entity commands."""
 
     ON = "on"
+    """Switch on media player."""
     OFF = "off"
+    """Switch off media player."""
     TOGGLE = "toggle"
+    """Toggle the current power state, either from on -> off or from off -> on."""
     PLAY_PAUSE = "play_pause"
+    """Toggle play / pause."""
     STOP = "stop"
+    """Stop playback."""
     PREVIOUS = "previous"
+    """Go back to previous track."""
     NEXT = "next"
+    """Skip to next track."""
     FAST_FORWARD = "fast_forward"
+    """Fast forward current track."""
     REWIND = "rewind"
+    """Rewind current track."""
     SEEK = "seek"
+    """Seek to given position in current track. Position is given in seconds."""
     VOLUME = "volume"
+    """Set volume to given level."""
     VOLUME_UP = "volume_up"
+    """Increase volume."""
     VOLUME_DOWN = "volume_down"
+    """Decrease volume."""
     MUTE_TOGGLE = "mute_toggle"
+    """Toggle mute state."""
     MUTE = "mute"
+    """Mute volume."""
     UNMUTE = "unmute"
+    """Unmute volume."""
     REPEAT = "repeat"
+    """Repeat track or playlist."""
     SHUFFLE = "shuffle"
+    """Shuffle playlist or start random playback."""
     CHANNEL_UP = "channel_up"
+    """Channel up."""
     CHANNEL_DOWN = "channel_down"
+    """Channel down."""
     CURSOR_UP = "cursor_up"
     """Directional pad up"""
     CURSOR_DOWN = "cursor_down"
@@ -171,19 +246,33 @@ class Commands(StrEnum):
     CURSOR_ENTER = "cursor_enter"
     """Directional pad enter"""
     DIGIT_0 = "digit_0"
+    """Number pad digit 0."""
     DIGIT_1 = "digit_1"
+    """Number pad digit 1."""
     DIGIT_2 = "digit_2"
+    """Number pad digit 2."""
     DIGIT_3 = "digit_3"
+    """Number pad digit 3."""
     DIGIT_4 = "digit_4"
+    """Number pad digit 4."""
     DIGIT_5 = "digit_5"
+    """Number pad digit 5."""
     DIGIT_6 = "digit_6"
+    """Number pad digit 6."""
     DIGIT_7 = "digit_7"
+    """Number pad digit 7."""
     DIGIT_8 = "digit_8"
+    """Number pad digit 8."""
     DIGIT_9 = "digit_9"
+    """Number pad digit 9."""
     FUNCTION_RED = "function_red"
+    """Function red."""
     FUNCTION_GREEN = "function_green"
+    """Function green."""
     FUNCTION_YELLOW = "function_yellow"
+    """Function yellow."""
     FUNCTION_BLUE = "function_blue"
+    """Function blue."""
     HOME = "home"
     """Home menu"""
     MENU = "menu"
@@ -217,6 +306,7 @@ class Commands(StrEnum):
     SETTINGS = "settings"
     """Settings menu"""
     SEARCH = "search"
+    """Search for media."""
     PLAY_MEDIA = "play_media"
     """Play or enqueue a media item."""
     CLEAR_PLAYLIST = "clear_playlist"
@@ -227,17 +317,32 @@ class DeviceClasses(StrEnum):
     """Media-player entity device classes."""
 
     RECEIVER = "receiver"
+    """Audio-video receiver."""
     SET_TOP_BOX = "set_top_box"
+    """Set-top box for multichannel video and media playback."""
     SPEAKER = "speaker"
+    """Smart speakers or stereo device."""
     STREAMING_BOX = "streaming_box"
+    """Device for media streaming services."""
     TV = "tv"
+    """Television device."""
 
 
 class Options(StrEnum):
     """Media-player entity options."""
 
     SIMPLE_COMMANDS = "simple_commands"
+    """Additional commands the media-player supports, which are not covered in the feature list.
+
+    Example: ``["EXIT", "THUMBS_UP", "THUMBS_DOWN"]``
+    """
     VOLUME_STEPS = "volume_steps"
+    """Number of available volume steps for the set volume command and UI controls.
+
+    Examples: 100 = any value between 0..100, 50 = only odd numbers, 3 = [33, 67, 100] etc. Value 0 = mute.
+
+    Note: if the integration receives an "unexpected" number it is required to round up or down to the next matching value.
+    """
 
 
 class MediaContentType(StrEnum):
@@ -439,18 +544,37 @@ class BrowseMediaItem:
     """Browse Media Item object."""
 
     media_id: str
+    """Unique identifier of the media item."""
     title: str
+    """Display name. Max 255 characters."""
     subtitle: str | None = None
+    """Optional subtitle. Max 255 characters."""
     artist: str | None = None
+    """Optional artist name. Max 255 characters."""
     album: str | None = None
+    """Optional album name. Max 255 characters."""
     media_class: MediaClass | str | None = None
+    """The media class for browsing."""
     media_type: MediaContentType | str | None = None
+    """The media content type."""
     can_browse: bool | None = None
+    """If `true`, the item can be browsed (is a container) by using ``media_id`` and ``media_type``."""
     can_play: bool | None = None
+    """If ``true``, the item can be played directly using the ``play_media`` command with ``media_id`` and ``media_type``."""
     can_search: bool | None = None
+    """If ``true``, a search can be performed on the item using ``search_media`` with ``media_id`` and ``media_type``."""
     thumbnail: str | None = None
+    """URL to download the media artwork, or a base64 encoded PNG or JPG image.
+    The preferred size is 480x480 pixels.
+    Use the following URI prefix to use a provided icon: ``icon://uc:``, for example, ``icon://uc:music``.
+    Please use a URL whenever possible. Encoded images should be as small as possible.
+    """
     duration: int | None = None
+    """Duration in seconds."""
     items: list["BrowseMediaItem"] | None = None
+    """Child items if this item is a container. Child items may not contain further child items (only one level
+    of nesting is supported). A new browse request must be sent for deeper levels.
+    """
 
 
 @dataclass(kw_only=True)
