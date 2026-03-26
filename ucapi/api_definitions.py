@@ -382,8 +382,10 @@ class Paging:
         """Validate fields."""
         if self.page < 1:
             raise ValueError(f"Invalid page: {self.page}. Must be >= 1.")
-        if self.limit < 1:
-            raise ValueError(f"Invalid limit: {self.limit}. Must be >= 1.")
+        if not 1 <= self.limit <= 1000:
+            raise ValueError(
+                f"Invalid limit: {self.limit}. Must be between 1 and 1000."
+            )
 
     @property
     def offset(self) -> int:
@@ -421,7 +423,9 @@ class Pagination:
         """Validate fields."""
         if self.page < 1:
             raise ValueError("page must be >= 1")
-        if self.limit < 0:
-            raise ValueError("limit cannot be negative")
+        if not 0 <= self.limit <= 1000:
+            raise ValueError(
+                f"Invalid limit: {self.limit}. Must be between 0 and 1000."
+            )
         if self.count is not None and self.count < 0:
             raise ValueError("count cannot be negative")

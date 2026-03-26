@@ -41,6 +41,8 @@ class TestPaging(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             Paging(limit=-1)
+        with self.assertRaises(ValueError):
+            Paging(limit=10000)
 
     def test_paging_from_dict(self):
         """Test constructing Paging from a dictionary."""
@@ -93,7 +95,13 @@ class TestPagination(unittest.TestCase):
         """Test validation for invalid limit."""
         with self.assertRaises(ValueError) as cm:
             Pagination(page=1, limit=-1)
-        self.assertIn("limit cannot be negative", str(cm.exception))
+        self.assertIn("Invalid limit", str(cm.exception))
+
+    def test_pagination_limit_out_of_range(self):
+        """Test validation for invalid limit."""
+        with self.assertRaises(ValueError) as cm:
+            Pagination(page=1, limit=10000)
+        self.assertIn("Invalid limit", str(cm.exception))
 
     def test_pagination_invalid_count(self):
         """Test validation for invalid count."""
