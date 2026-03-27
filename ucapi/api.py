@@ -30,9 +30,16 @@ from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
 from . import StatusCodes
 from . import api_definitions as uc
+from .api_definitions import WsMsgEvents
 from .entities import Entities
 from .entity import EntityTypes
 from .media_player import Attributes as MediaAttr
+from .media_player import (
+    BrowseResults,
+    MediaPlayer,
+    SearchResults,
+)
+from .msg_definitions import BrowseMediaMsgData, SearchMediaMsgData
 
 # Classes are dynamically created at runtime using the Google Protobuf builder pattern.
 # pylint: disable=no-name-in-module
@@ -732,7 +739,7 @@ class IntegrationAPI:
                 session.end(VoiceEndReason.ERROR, ex)
         finally:
             # Ensure iterator is unblocked and session is cleaned up
-            await self._cleanup_voice_session(session.session_id)
+            await self._cleanup_voice_session(session.key)
 
     def _schedule_voice_timeout(self, key: VoiceSessionKey) -> None:
         """Schedule the timeout task for a voice session.
@@ -786,6 +793,7 @@ class IntegrationAPI:
         ctx.session.end(VoiceEndReason.TIMEOUT)
         await self._cleanup_voice_session(key)
 
+    # pylint: disable=R0912
     async def _handle_ws_request_msg(
         self, websocket, msg: str, req_id: int, msg_data: dict[str, Any] | None
     ) -> None:
@@ -1052,7 +1060,7 @@ class IntegrationAPI:
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
     ) -> None:
         if not msg_data:
-            _LOG.warning("Ignoring entity command: called with empty msg_data")
+            _LOG.warning("Ignoring browse_media command: called with empty msg_data")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
@@ -1060,28 +1068,50 @@ class IntegrationAPI:
 
         entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
         if entity_id is None:
-            _LOG.warning("Ignoring command: missing entity_id")
+            _LOG.warning("Ignoring browse_media command: missing entity_id")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
             return
 
         entity = self.configured_entities.get(entity_id)
-        if entity is None:
+        if entity is None or not isinstance(entity, MediaPlayer):
             _LOG.warning(
-                "Cannot browse media for '%s': no configured entity found",
+                "Cannot browse media for '%s': no configured entity found or entity is not a media-player",
                 entity_id,
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
             return
 
-        result = await entity.browse_media(
-            msg_data,
-            websocket=websocket,
-        )
-        if isinstance(result, dict):
+        # extract request and validate
+        try:
+            data = BrowseMediaMsgData(**msg_data)
+        except (TypeError, ValueError):
+            _LOG.error(
+                "Cannot browse media for '%s': wrong format %s", entity_id, msg_data
+            )
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.BAD_REQUEST
+            )
+            return
+
+        # call integration driver to handle browse request
+        try:
+            result = await entity.browse(data)
+        except Exception:  # pylint: disable=W0718
+            _LOG.exception("Failed to call MediaPlayer.browse for '%s'", entity_id)
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.SERVER_ERROR
+            )
+            return
+
+        if isinstance(result, BrowseResults):
             await self._send_ws_response(
-                websocket, req_id, "media_browse", result, StatusCodes.OK
+                websocket,
+                req_id,
+                WsMsgEvents.MEDIA_BROWSE,
+                asdict(result),
+                uc.StatusCodes.OK,
             )
         else:
             await self.acknowledge_command(websocket, req_id, result)
@@ -1090,7 +1120,7 @@ class IntegrationAPI:
         self, websocket, req_id: int, msg_data: dict[str, Any] | None
     ) -> None:
         if not msg_data:
-            _LOG.warning("Ignoring entity command: called with empty msg_data")
+            _LOG.warning("Ignoring search_media command: called with empty msg_data")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
@@ -1098,28 +1128,48 @@ class IntegrationAPI:
 
         entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
         if entity_id is None:
-            _LOG.warning("Ignoring command: missing entity_id")
+            _LOG.warning("Ignoring search_media command: missing entity_id")
             await self.acknowledge_command(
                 websocket, req_id, uc.StatusCodes.BAD_REQUEST
             )
             return
 
         entity = self.configured_entities.get(entity_id)
-        if entity is None:
+        if entity is None or not isinstance(entity, MediaPlayer):
             _LOG.warning(
-                "Cannot search media for '%s': no configured entity found",
+                "Cannot search media for '%s': no configured entity found or entity is not a media-player",
                 entity_id,
             )
             await self.acknowledge_command(websocket, req_id, uc.StatusCodes.NOT_FOUND)
             return
 
-        result = await entity.search_media(
-            msg_data,
-            websocket=websocket,
-        )
-        if isinstance(result, dict):
+        try:
+            data = SearchMediaMsgData(**msg_data)
+        except (TypeError, ValueError):
+            _LOG.error(
+                "Cannot search media for '%s': wrong format %s", entity_id, msg_data
+            )
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.BAD_REQUEST
+            )
+            return
+
+        try:
+            result = await entity.search(data)
+        except Exception:  # pylint: disable=W0718
+            _LOG.exception("Failed to call MediaPlayer.search for '%s'", entity_id)
+            await self.acknowledge_command(
+                websocket, req_id, uc.StatusCodes.SERVER_ERROR
+            )
+            return
+
+        if isinstance(result, SearchResults):
             await self._send_ws_response(
-                websocket, req_id, "media_search", result, StatusCodes.OK
+                websocket,
+                req_id,
+                WsMsgEvents.MEDIA_SEARCH,
+                asdict(result),
+                uc.StatusCodes.OK,
             )
         else:
             await self.acknowledge_command(websocket, req_id, result)
