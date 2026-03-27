@@ -28,7 +28,6 @@ from websockets.exceptions import ConnectionClosedOK
 from zeroconf import IPVersion
 from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 
-from . import StatusCodes
 from . import api_definitions as uc
 from .api_definitions import WsMsgEvents
 from .entities import Entities
