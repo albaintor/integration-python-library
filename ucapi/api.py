@@ -238,10 +238,8 @@ class IntegrationAPI:
                     # JSON text message
                     asyncio.create_task(self._process_ws_message(websocket, message))
                 elif isinstance(message, (bytes, bytearray, memoryview)):
-                    # Binary message (protobuf in future)
-                    asyncio.create_task(
-                        self._process_ws_binary_message(websocket, bytes(message))
-                    )
+                    # Binary message (protobuf)
+                    await self._process_ws_binary_message(websocket, bytes(message))
                 else:
                     _LOG.warning(
                         "[%s] WS: Unsupported message type %s",
