@@ -223,7 +223,7 @@ class IntegrationAPI:
     async def _handle_ws(self, websocket) -> None:
         try:
             self._clients.add(websocket)
-            # Init per-websocket pending requests map + send lock
+            # Init per-websocket pending requests map
             self._ws_pending[websocket] = {}
             _LOG.info("WS: Client added: %s", websocket.remote_address)
 
@@ -492,7 +492,6 @@ class IntegrationAPI:
         if websocket not in self._ws_pending:
             self._ws_pending[websocket] = {}
 
-        # Allocate req_id safely
         req_id = self._req_id
         self._req_id += 1
 
