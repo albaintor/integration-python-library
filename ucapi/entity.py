@@ -7,7 +7,7 @@ Entity definitions.
 
 import inspect
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .api_definitions import CommandHandler, StatusCodes
@@ -34,7 +34,7 @@ def validate_str(name: str, value: str, min_len: int = 1, max_len: int = 255) ->
         raise ValueError(f"{name} must be at most {max_len} characters")
 
 
-class EntityTypes(str, Enum):
+class EntityTypes(StrEnum):
     """Entity types."""
 
     COVER = "cover"
@@ -50,7 +50,7 @@ class EntityTypes(str, Enum):
     VOICE_ASSISTANT = "voice_assistant"
 
 
-class CommonStates(str, Enum):
+class CommonStates(StrEnum):
     """Common entity states available in all entities."""
 
     UNAVAILABLE = "UNAVAILABLE"

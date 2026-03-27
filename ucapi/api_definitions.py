@@ -6,11 +6,11 @@ API definitions.
 """
 
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any, Awaitable, Callable, TypeAlias
 
 
-class DeviceStates(str, Enum):
+class DeviceStates(StrEnum):
     """Device states."""
 
     CONNECTED = "CONNECTED"
@@ -33,7 +33,7 @@ class StatusCodes(IntEnum):
     SERVICE_UNAVAILABLE = 503
 
 
-class IntegrationSetupError(str, Enum):
+class IntegrationSetupError(StrEnum):
     """More detailed error reason for ``state: ERROR`` condition."""
 
     NONE = "NONE"
@@ -45,7 +45,7 @@ class IntegrationSetupError(str, Enum):
 
 
 # Does WsMessages need to be public?
-class WsMessages(str, Enum):
+class WsMessages(StrEnum):
     """WebSocket request messages from Remote Two/3."""
 
     AUTHENTICATION = "authentication"
@@ -64,7 +64,7 @@ class WsMessages(str, Enum):
 
 
 # Does WsMsgEvents need to be public?
-class WsMsgEvents(str, Enum):
+class WsMsgEvents(StrEnum):
     """WebSocket event messages from Remote Two/3."""
 
     CONNECT = "connect"
@@ -84,7 +84,7 @@ class WsMsgEvents(str, Enum):
     MEDIA_SEARCH = "media_search"
 
 
-class Events(str, Enum):
+class Events(StrEnum):
     """Internal library events.
 
     All event parameters are named parameters and optional.
@@ -159,7 +159,7 @@ class Events(str, Enum):
 
 
 # Does EventCategory need to be public?
-class EventCategory(str, Enum):
+class EventCategory(StrEnum):
     """Event categories."""
 
     DEVICE = "DEVICE"
@@ -284,7 +284,7 @@ SetupHandler: TypeAlias = Callable[[SetupDriver], Awaitable[SetupAction]]
 # ---------------------------------------------------------------------------
 
 
-class AssistantEventType(str, Enum):
+class AssistantEventType(StrEnum):
     """Type discriminator for assistant event messages."""
 
     READY = "ready"
@@ -295,7 +295,7 @@ class AssistantEventType(str, Enum):
     ERROR = "error"
 
 
-class AssistantErrorCode(str, Enum):
+class AssistantErrorCode(StrEnum):
     """Error codes for assistant processing."""
 
     SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
