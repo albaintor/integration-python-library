@@ -119,8 +119,6 @@ class IntegrationAPI:
         # One receiver per websocket (already in _handle_ws). Responses are dispatched to futures here.
         self._ws_pending: dict[Any, dict[int, asyncio.Future]] = {}
 
-        self._supported_entity_types: list[str] | None = None
-
         # Setup event loop
         asyncio.set_event_loop(self._loop)
 
@@ -810,15 +808,6 @@ class IntegrationAPI:
             )
         elif msg == uc.WsMessages.GET_AVAILABLE_ENTITIES:
             available_entities = self._available_entities.get_all()
-            # if self._supported_entity_types is None:
-            #     # Request supported entity types from remote
-            #     await self._update_supported_entity_types(websocket)
-            # if self._supported_entity_types:
-            #     available_entities = [
-            #         entity
-            #         for entity in available_entities
-            #         if entity.get("entity_type") in self._supported_entity_types
-            #     ]
             await self._send_ws_response(
                 websocket,
                 req_id,
@@ -1485,27 +1474,6 @@ class IntegrationAPI:
                 resp.get("msg"),
             )
         return resp.get("msg_data", [])
-
-    async def _update_supported_entity_types(
-        self, websocket, *, timeout: float = 5.0
-    ) -> None:
-        """Update supported entity types by remote."""
-        await asyncio.sleep(0)
-        try:
-            self._supported_entity_types = await self.get_supported_entity_types(
-                websocket, timeout=timeout
-            )
-            _LOG.debug(
-                "[%s] Supported entity types %s",
-                websocket.remote_address,
-                self._supported_entity_types,
-            )
-        except Exception as ex:  # pylint: disable=W0718
-            _LOG.error(
-                "[%s] Unable to retrieve entity types %s",
-                websocket.remote_address,
-                ex,
-            )
 
     async def get_version(self, websocket, *, timeout: float = 5.0) -> dict[str, Any]:
         """Request client version and return msg_data."""
