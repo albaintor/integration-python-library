@@ -9,16 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Changes in the next release_
 
-### Added
-- Media browsing and searching features to media-player entity.
-- Allow integrations to provide entity icon and description.
-
-### Breaking Changes
-- Renamed `MediaType` to `MediaContentType` and changed enums to lowercase. See media-player entity documentation for more information.
-- Changed `str, Enum` to new Python 3.11 `StrEnum` class.
-- All entity constructors require named parameters for the optional fields.
-
 ---
+
+## v0.6.0 - 2026-04-10
+### Breaking Changes
+- Renamed `MediaType` to `MediaContentType` and changed enums to lowercase. See media-player entity documentation for more information ([#50](https://github.com/unfoldedcircle/integration-python-library/pull/50)).
+- Changed `str, Enum` to new Python 3.11 `StrEnum` class ([#54](https://github.com/unfoldedcircle/integration-python-library/pull/54)).
+- All entity constructors require named parameters for the optional fields ([#49](https://github.com/unfoldedcircle/integration-python-library/pull/49), [#54](https://github.com/unfoldedcircle/integration-python-library/pull/54)).
+
+### Added
+- Media browsing and searching features to media-player entity ([#50](https://github.com/unfoldedcircle/integration-python-library/pull/50)).
+- Allow integrations to provide entity icon and description ([#55](https://github.com/unfoldedcircle/integration-python-library/pull/55)).
+
 
 ## v0.5.2 - 2026-01-30
 ### Added
