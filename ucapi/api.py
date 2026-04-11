@@ -78,6 +78,18 @@ class _VoiceSessionContext:
     handler_task: asyncio.Task | None = None
 
 
+@dataclass(slots=True)
+class _WsContext:
+    """Websocket context."""
+
+    incoming: asyncio.Queue[str | bytes | None]
+    outgoing: asyncio.Queue[str | None]
+    pending: dict[int, asyncio.Future]
+    consumer_task: asyncio.Task | None = None
+    producer_task: asyncio.Task | None = None
+    router_task: asyncio.Task | None = None
+
+
 # pylint: disable=too-many-public-methods, too-many-lines
 class IntegrationAPI:
     """Integration API to communicate with Remote Two/3."""
@@ -115,11 +127,8 @@ class IntegrationAPI:
         self._voice_sessions: dict[VoiceSessionKey, _VoiceSessionContext] = {}
         # Enforce: at most one active session per entity_id (across all websockets)
         self._voice_session_by_entity: dict[str, VoiceSessionKey] = {}
-
-        # One receiver per websocket (already in _handle_ws). Responses are dispatched to futures here.
-        self._ws_pending: dict[Any, dict[int, asyncio.Future]] = {}
-
-        self._supported_entity_types: list[str] | None = None
+        # Websocket context with incoming & outgoing queues and handlers
+        self._ws_contexts: dict[Any, _WsContext] = {}
 
         # Setup event loop
         asyncio.set_event_loop(self._loop)
@@ -221,42 +230,65 @@ class IntegrationAPI:
             await asyncio.Future()
 
     async def _handle_ws(self, websocket) -> None:
+        # Initialize incoming and outgoing queues
+        incoming: asyncio.Queue[str | bytes | None] = asyncio.Queue(maxsize=100)
+        outgoing: asyncio.Queue[str | None] = asyncio.Queue(maxsize=100)
+
+        ctx = _WsContext(
+            incoming=incoming,
+            outgoing=outgoing,
+            pending={},
+        )
+
+        self._clients.add(websocket)
+        self._ws_contexts[websocket] = ctx
+
         try:
-            self._clients.add(websocket)
-            # Init per-websocket pending requests map + send lock
-            self._ws_pending[websocket] = {}
             _LOG.info("WS: Client added: %s", websocket.remote_address)
+
+            ctx.consumer_task = self._loop.create_task(
+                self._ws_consumer(websocket, ctx)
+            )
+            ctx.producer_task = self._loop.create_task(
+                self._ws_producer(websocket, ctx)
+            )
+            ctx.router_task = self._loop.create_task(self._ws_router(websocket, ctx))
 
             # authenticate on connection
             await self._authenticate(websocket, True)
-
             self._events.emit(uc.Events.CLIENT_CONNECTED, websocket=websocket)
+            tasks = [
+                t
+                for t in [ctx.consumer_task, ctx.producer_task, ctx.router_task]
+                if t is not None
+            ]
+            done, pending = await asyncio.wait(
+                tasks,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
 
-            async for message in websocket:
-                # Distinguish between text (str) and binary (bytes-like) messages
-                if isinstance(message, str):
-                    # JSON text message
-                    await self._process_ws_message(websocket, message)
-                elif isinstance(message, (bytes, bytearray, memoryview)):
-                    # Binary message (protobuf in future)
-                    await self._process_ws_binary_message(websocket, bytes(message))
-                else:
-                    _LOG.warning(
-                        "[%s] WS: Unsupported message type %s",
-                        websocket.remote_address,
-                        type(message).__name__,
-                    )
+            for task in pending:
+                task.cancel()
+
+            results = await asyncio.gather(*done, *pending, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception) and not isinstance(
+                    result, asyncio.CancelledError
+                ):
+                    raise result
 
         except ConnectionClosedOK:
             _LOG.info("[%s] WS: Connection closed", websocket.remote_address)
 
         except websockets.exceptions.ConnectionClosedError as e:
-            # no idea why they made code & reason deprecated...
+            close = e.rcvd or e.sent
+            code = getattr(close, "code", None)
+            reason = getattr(close, "reason", None)
             _LOG.info(
-                "[%s] WS: Connection closed with error %d: %s",
+                "[%s] WS: Connection closed with error %s: %s",
                 websocket.remote_address,
-                e.code,
-                e.reason,
+                code,
+                reason,
             )
 
         except websockets.exceptions.WebSocketException as e:
@@ -267,26 +299,60 @@ class IntegrationAPI:
             )
 
         finally:
-            # Cleanup any active voice sessions associated with this websocket
-            keys_to_cleanup = [k for k in self._voice_sessions if k[0] is websocket]
-            for key in keys_to_cleanup:
-                try:
-                    await self._cleanup_voice_session(key, VoiceEndReason.REMOTE)
-                except Exception as ex:  # pylint: disable=W0718
-                    _LOG.exception(
-                        "[%s] WS: Error during voice session cleanup for session_id=%s: %s",
-                        websocket.remote_address,
-                        key[1],
-                        ex,
-                    )
-            # Cancel all pending requests for this websocket (client disconnected)
-            pending = self._ws_pending.pop(websocket, {})
-            for _, fut in pending.items():
-                if not fut.done():
-                    fut.set_exception(ConnectionError("WebSocket disconnected"))
-            self._clients.remove(websocket)
-            _LOG.info("[%s] WS: Client removed", websocket.remote_address)
-            self._events.emit(uc.Events.CLIENT_DISCONNECTED, websocket=websocket)
+            await self._cleanup_ws(websocket)
+
+    async def _ws_consumer(self, websocket, ctx: _WsContext) -> None:
+        try:
+            async for message in websocket:
+                await ctx.incoming.put(message)
+        finally:
+            await ctx.incoming.put(None)
+            await ctx.outgoing.put(None)
+
+    async def _ws_producer(self, websocket, ctx: _WsContext) -> None:
+        try:
+            while True:
+                msg = await ctx.outgoing.get()
+                if msg is None:
+                    break
+                await websocket.send(msg)
+        except (ConnectionClosedOK, websockets.exceptions.ConnectionClosedError):
+            pass
+
+    async def _ws_router(self, websocket, ctx: _WsContext) -> None:
+        while True:
+            message = await ctx.incoming.get()
+            if message is None:
+                break
+            # Distinguish between text (str) and binary (bytes-like) messages
+            if isinstance(message, str):
+                # JSON text message
+                await self._process_ws_message(websocket, message)
+            elif isinstance(message, (bytes, bytearray, memoryview)):
+                # Binary message (protobuf in future)
+                await self._process_ws_binary_message(websocket, bytes(message))
+            else:
+                _LOG.warning(
+                    "[%s] WS: Unsupported message type %s",
+                    websocket.remote_address,
+                    type(message).__name__,
+                )
+
+    def _get_ws_context(self, websocket) -> _WsContext | None:
+        return self._ws_contexts.get(websocket)
+
+    async def _enqueue_ws_payload(self, websocket, payload: dict[str, Any]) -> None:
+        ctx = self._get_ws_context(websocket)
+        if ctx is None or websocket not in self._clients:
+            _LOG.error("Error sending payload: connection no longer established")
+            return
+
+        if _LOG.isEnabledFor(logging.DEBUG):
+            _LOG.debug(
+                "[%s] ->: %s", websocket.remote_address, filter_log_msg_data(payload)
+            )
+
+        await ctx.outgoing.put(json.dumps(payload))
 
     async def _send_ok_result(
         self, websocket, req_id: int, msg_data: dict[str, Any] | list | None = None
@@ -325,7 +391,6 @@ class IntegrationAPI:
         """
         await self._send_ws_response(websocket, req_id, "result", msg_data, status_code)
 
-    # pylint: disable=R0917
     async def _send_ws_response(
         self,
         websocket,
@@ -353,16 +418,7 @@ class IntegrationAPI:
             "msg": msg,
             "msg_data": msg_data if msg_data is not None else {},
         }
-
-        if websocket in self._clients:
-            data_dump = json.dumps(data)
-            if _LOG.isEnabledFor(logging.DEBUG):
-                _LOG.debug(
-                    "[%s] ->: %s", websocket.remote_address, filter_log_msg_data(data)
-                )
-            await websocket.send(data_dump)
-        else:
-            _LOG.error("Error sending response: connection no longer established")
+        await self._enqueue_ws_payload(websocket, data)
 
     async def _broadcast_ws_event(
         self, msg: str, msg_data: dict[str, Any], category: uc.EventCategory
@@ -378,17 +434,13 @@ class IntegrationAPI:
         :param category: event category
         """
         data = {"kind": "event", "msg": msg, "msg_data": msg_data, "cat": category}
-        data_dump = json.dumps(data)
-
         for websocket in self._clients.copy():
-            if _LOG.isEnabledFor(logging.DEBUG):
-                _LOG.debug(
-                    "[%s] =>: %s", websocket.remote_address, filter_log_msg_data(data)
-                )
             try:
-                await websocket.send(data_dump)
-            except websockets.exceptions.WebSocketException:
-                pass
+                await self._enqueue_ws_payload(websocket, data)
+            except Exception:
+                _LOG.exception(
+                    "Failed to enqueue broadcast for %s", websocket.remote_address
+                )
 
     async def _send_ws_event(
         self, websocket, msg: str, msg_data: dict[str, Any], category: uc.EventCategory
@@ -405,16 +457,7 @@ class IntegrationAPI:
             websockets.ConnectionClosed: When the connection is closed.
         """
         data = {"kind": "event", "msg": msg, "msg_data": msg_data, "cat": category}
-        data_dump = json.dumps(data)
-
-        if websocket in self._clients:
-            if _LOG.isEnabledFor(logging.DEBUG):
-                _LOG.debug(
-                    "[%s] ->: %s", websocket.remote_address, filter_log_msg_data(data)
-                )
-            await websocket.send(data_dump)
-        else:
-            _LOG.error("Error sending event: connection no longer established")
+        await self._enqueue_ws_payload(websocket, data)
 
     async def _process_ws_message(self, websocket, message) -> None:
         _LOG.debug("[%s] <-: %s", websocket.remote_address, message)
@@ -445,16 +488,11 @@ class IntegrationAPI:
                     message,
                 )
                 return
-
-            pending = self._ws_pending.get(websocket)
-            if not pending:
-                _LOG.debug(
-                    "[%s] WS: No pending map for resp_id=%s (late resp?)",
-                    websocket.remote_address,
-                    resp_id,
-                )
+            ctx = self._get_ws_context(websocket)
+            if ctx is None:
+                _LOG.debug("[%s] WS: No context for resp", websocket.remote_address)
                 return
-            fut = pending.get(int(resp_id))
+            fut = ctx.pending.get(int(resp_id))
             if fut is None:
                 _LOG.debug(
                     "[%s] WS: Unmatched resp_id=%s (not pending). msg=%s",
@@ -487,30 +525,25 @@ class IntegrationAPI:
         :param timeout: timeout for message
         """
         # Ensure per-socket structures exist (in case you call before _handle_ws init)
-        if websocket not in self._ws_pending:
-            self._ws_pending[websocket] = {}
+        ctx = self._get_ws_context(websocket)
+        if ctx is None:
+            raise ConnectionError("WebSocket context not found")
 
         # Allocate req_id safely
         req_id = self._req_id
         self._req_id += 1
 
         fut = self._loop.create_future()
-        self._ws_pending[websocket][req_id] = fut
+        ctx.pending[req_id] = fut
 
         try:
             payload: dict[str, Any] = {"kind": "req", "id": req_id, "msg": msg}
             if msg_data is not None:
                 payload["msg_data"] = msg_data
 
-            if _LOG.isEnabledFor(logging.DEBUG):
-                _LOG.debug(
-                    "[%s] ->: %s",
-                    websocket.remote_address,
-                    filter_log_msg_data(payload),
-                )
-            await websocket.send(json.dumps(payload))
+            await self._enqueue_ws_payload(websocket, payload)
 
-            # Await response
+            # Await response from client until given timeout
             resp = await asyncio.wait_for(fut, timeout=timeout)
             return resp
 
@@ -525,9 +558,7 @@ class IntegrationAPI:
             raise ex
         finally:
             # Cleanup pending future entry
-            pending = self._ws_pending.get(websocket)
-            if pending:
-                pending.pop(req_id, None)
+            ctx.pending.pop(req_id, None)
 
     async def _process_ws_binary_message(self, websocket, data: bytes) -> None:
         """Process a binary WebSocket message using protobuf IntegrationMessage.
@@ -568,6 +599,30 @@ class IntegrationAPI:
                 websocket.remote_address,
                 kind,
             )
+
+    async def _cleanup_ws(self, websocket) -> None:
+        ctx = self._ws_contexts.pop(websocket, None)
+
+        keys_to_cleanup = [k for k in self._voice_sessions if k[0] is websocket]
+        for key in keys_to_cleanup:
+            try:
+                await self._cleanup_voice_session(key, VoiceEndReason.REMOTE)
+            except Exception as ex:
+                _LOG.exception(
+                    "[%s] WS: Error during voice session cleanup for session_id=%s: %s",
+                    websocket.remote_address,
+                    key[1],
+                    ex,
+                )
+
+        if ctx is not None:
+            for fut in ctx.pending.values():
+                if not fut.done():
+                    fut.set_exception(ConnectionError("WebSocket disconnected"))
+
+        self._clients.discard(websocket)
+        _LOG.info("[%s] WS: Client removed", websocket.remote_address)
+        self._events.emit(uc.Events.CLIENT_DISCONNECTED, websocket=websocket)
 
     async def _on_remote_voice_begin(self, websocket, msg: RemoteVoiceBegin) -> None:
         """Handle a RemoteVoiceBegin protobuf message.
@@ -1475,28 +1530,9 @@ class IntegrationAPI:
             )
         return resp.get("msg_data", [])
 
-    async def _update_supported_entity_types(
+    async def get_version(
         self, websocket, *, timeout: float = 5.0
-    ) -> None:
-        """Update supported entity types by remote."""
-        await asyncio.sleep(0)
-        try:
-            self._supported_entity_types = await self.get_supported_entity_types(
-                websocket, timeout=timeout
-            )
-            _LOG.debug(
-                "[%s] Supported entity types %s",
-                websocket.remote_address,
-                self._supported_entity_types,
-            )
-        except Exception as ex:  # pylint: disable=W0718
-            _LOG.error(
-                "[%s] Unable to retrieve entity types %s",
-                websocket.remote_address,
-                ex,
-            )
-
-    async def get_version(self, websocket, *, timeout: float = 5.0) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """Request client version and return msg_data."""
         resp = await self._ws_request(
             websocket,
@@ -1514,7 +1550,7 @@ class IntegrationAPI:
 
     async def get_localization_cfg(
         self, websocket, *, timeout: float = 5.0
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """Request localization config and return msg_data."""
         resp = await self._ws_request(
             websocket,
