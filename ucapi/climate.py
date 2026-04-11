@@ -5,14 +5,14 @@ Climate entity definitions.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .api_definitions import CommandHandler
 from .entity import Entity, EntityTypes
 
 
-class States(str, Enum):
+class States(StrEnum):
     """Climate entity states."""
 
     UNAVAILABLE = "UNAVAILABLE"
@@ -25,7 +25,7 @@ class States(str, Enum):
     AUTO = "AUTO"
 
 
-class Features(str, Enum):
+class Features(StrEnum):
     """Climate entity features."""
 
     ON_OFF = "on_off"
@@ -37,7 +37,7 @@ class Features(str, Enum):
     FAN = "fan"
 
 
-class Attributes(str, Enum):
+class Attributes(StrEnum):
     """Climate entity attributes."""
 
     STATE = "state"
@@ -48,7 +48,7 @@ class Attributes(str, Enum):
     FAN_MODE = "fan_mode"
 
 
-class Commands(str, Enum):
+class Commands(StrEnum):
     """Climate entity commands."""
 
     ON = "on"
@@ -59,11 +59,11 @@ class Commands(str, Enum):
     FAN_MODE = "fan_mode"
 
 
-class DeviceClasses(str, Enum):
+class DeviceClasses(StrEnum):
     """Climate entity device classes."""
 
 
-class Options(str, Enum):
+class Options(StrEnum):
     """Climate entity options."""
 
     TEMPERATURE_UNIT = "temperature_unit"
@@ -88,8 +88,11 @@ class Climate(Entity):
         name: str | dict[str, str],
         features: list[Features],
         attributes: dict[str, Any],
+        *,
         device_class: str | None = None,
         options: dict[str, Any] | None = None,
+        icon: str | None = None,
+        description: str | dict[str, str] | None = None,
         area: str | None = None,
         cmd_handler: CommandHandler = None,
     ):
@@ -102,6 +105,8 @@ class Climate(Entity):
         :param attributes: climate attributes
         :param device_class: optional climate device class
         :param options: options
+        :param icon: optional icon
+        :param description: optional description, either a string or a language dictionary
         :param area: optional area
         :param cmd_handler: handler for entity commands
         """
@@ -113,6 +118,8 @@ class Climate(Entity):
             attributes,
             device_class=device_class,
             options=options,
+            icon=icon,
+            description=description,
             area=area,
             cmd_handler=cmd_handler,
         )

@@ -5,26 +5,26 @@ Button entity definitions.
 :license: MPL-2.0, see LICENSE for more details.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 from .api_definitions import CommandHandler
 from .entity import Entity, EntityTypes
 
 
-class States(str, Enum):
+class States(StrEnum):
     """Button entity states."""
 
     UNAVAILABLE = "UNAVAILABLE"
     AVAILABLE = "AVAILABLE"
 
 
-class Attributes(str, Enum):
+class Attributes(StrEnum):
     """Button entity attributes."""
 
     STATE = "state"
 
 
-class Commands(str, Enum):
+class Commands(StrEnum):
     """Button entity commands."""
 
     PUSH = "push"
@@ -42,6 +42,9 @@ class Button(Entity):
         self,
         identifier: str,
         name: str | dict[str, str],
+        *,
+        icon: str | None = None,
+        description: str | dict[str, str] | None = None,
         area: str | None = None,
         cmd_handler: CommandHandler = None,
     ):
@@ -50,6 +53,8 @@ class Button(Entity):
 
         :param identifier: entity identifier
         :param name: friendly name, either a string or a language dictionary
+        :param icon: optional icon
+        :param description: optional description, either a string or a language dictionary
         :param area: optional area name
         :param cmd_handler: handler for entity commands
         """
@@ -59,6 +64,8 @@ class Button(Entity):
             EntityTypes.BUTTON,
             ["press"],
             {Attributes.STATE: States.AVAILABLE},
+            icon=icon,
+            description=description,
             area=area,
             cmd_handler=cmd_handler,
         )

@@ -6,11 +6,11 @@ API definitions.
 """
 
 from dataclasses import dataclass
-from enum import Enum, IntEnum, StrEnum
+from enum import IntEnum, StrEnum
 from typing import Any, Awaitable, Callable, TypeAlias
 
 
-class DeviceStates(str, Enum):
+class DeviceStates(StrEnum):
     """Device states."""
 
     CONNECTED = "CONNECTED"
@@ -33,7 +33,7 @@ class StatusCodes(IntEnum):
     SERVICE_UNAVAILABLE = 503
 
 
-class IntegrationSetupError(str, Enum):
+class IntegrationSetupError(StrEnum):
     """More detailed error reason for ``state: ERROR`` condition."""
 
     NONE = "NONE"
@@ -45,7 +45,7 @@ class IntegrationSetupError(str, Enum):
 
 
 # Does WsMessages need to be public?
-class WsMessages(str, Enum):
+class WsMessages(StrEnum):
     """WebSocket request messages from Remote Two/3."""
 
     AUTHENTICATION = "authentication"
@@ -64,7 +64,7 @@ class WsMessages(str, Enum):
 
 
 # Does WsMsgEvents need to be public?
-class WsMsgEvents(str, Enum):
+class WsMsgEvents(StrEnum):
     """WebSocket event messages from Remote Two/3."""
 
     CONNECT = "connect"
@@ -84,7 +84,7 @@ class WsMsgEvents(str, Enum):
     MEDIA_SEARCH = "media_search"
 
 
-class Events(str, Enum):
+class Events(StrEnum):
     """Internal library events.
 
     All event parameters are named parameters and optional.
@@ -159,7 +159,7 @@ class Events(str, Enum):
 
 
 # Does EventCategory need to be public?
-class EventCategory(str, Enum):
+class EventCategory(StrEnum):
     """Event categories."""
 
     DEVICE = "DEVICE"
@@ -284,7 +284,7 @@ SetupHandler: TypeAlias = Callable[[SetupDriver], Awaitable[SetupAction]]
 # ---------------------------------------------------------------------------
 
 
-class AssistantEventType(str, Enum):
+class AssistantEventType(StrEnum):
     """Type discriminator for assistant event messages."""
 
     READY = "ready"
@@ -295,7 +295,7 @@ class AssistantEventType(str, Enum):
     ERROR = "error"
 
 
-class AssistantErrorCode(str, Enum):
+class AssistantErrorCode(StrEnum):
     """Error codes for assistant processing."""
 
     SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
@@ -360,74 +360,48 @@ class AssistantEvent:
     data: AssistantEventData | None = None
 
 
-class MediaContentType(StrEnum):
-    """Media content types for media browsing."""
-
-    ALBUM = "album"
-    APP = "app"
-    APPS = "apps"
-    ARTIST = "artist"
-    CHANNEL = "channel"
-    CHANNELS = "channels"
-    COMPOSER = "composer"
-    EPISODE = "episode"
-    GAME = "game"
-    GENRE = "genre"
-    IMAGE = "image"
-    MOVIE = "movie"
-    MUSIC = "music"
-    PLAYLIST = "playlist"
-    PODCAST = "podcast"
-    RADIO = "radio"
-    SEASON = "season"
-    TRACK = "track"
-    TV_SHOW = "tv_show"
-    URL = "url"
-    VIDEO = "video"
-
-
-class MediaClass(StrEnum):
-    """Media classes for media browsing."""
-
-    ALBUM = "album"
-    APP = "app"
-    ARTIST = "artist"
-    CHANNEL = "channel"
-    COMPOSER = "composer"
-    DIRECTORY = "directory"
-    EPISODE = "episode"
-    GAME = "game"
-    GENRE = "genre"
-    IMAGE = "image"
-    MOVIE = "movie"
-    MUSIC = "music"
-    PLAYLIST = "playlist"
-    PODCAST = "podcast"
-    RADIO = "radio"
-    SEASON = "season"
-    TRACK = "track"
-    TV_SHOW = "tv_show"
-    URL = "url"
-    VIDEO = "video"
-
-
-@dataclass
-class PagingOptions:
+@dataclass(frozen=True)
+class Paging:
     """
-    Pagination options.
+    Paging options.
 
     Attributes:
-        page (int | None):
+        page (int):
             Page number, 1-based.
-        limit (int | None):
+        limit (int):
             Number of items returned per page.
     """
 
-    page: int | None = None
-    limit: int | None = None
+    page: int = 1
+    limit: int = 10
+
+    DEFAULT_PAGE = 1
+    DEFAULT_LIMIT = 10
+
+    def __post_init__(self):
+        """Validate fields."""
+        if self.page < 1:
+            raise ValueError(f"Invalid page: {self.page}. Must be >= 1.")
+        if not 1 <= self.limit <= 1000:
+            raise ValueError(
+                f"Invalid limit: {self.limit}. Must be between 1 and 1000."
+            )
+
+    @property
+    def offset(self) -> int:
+        """Calculate 0-based start offset."""
+        return self.limit * (self.page - 1)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Paging":
+        """Construct from a raw dictionary (e.g., from JSON)."""
+        return cls(
+            page=data.get("page", cls.DEFAULT_PAGE),
+            limit=data.get("limit", cls.DEFAULT_LIMIT),
+        )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Pagination:
     """
     Pagination metadata returned by the client.
@@ -436,7 +410,7 @@ class Pagination:
         page (int):
             Current page number, 1-based. Must correspond to the requested page.
         limit (int):
-            Number of items returned in this page (1–100).
+            Number of items returned in this page.
         count (int|None):
             Optional if known: Total number of available items across all pages.
     """
@@ -445,168 +419,13 @@ class Pagination:
     limit: int
     count: int | None = None
 
-
-@dataclass
-class BrowseOptions:
-    """
-    Browsing media options.
-
-    Attributes:
-        media_id (str | None):
-            Optional media content ID to restrict browsing.
-        media_type (str | None):
-            Optional media content type to restrict browsing.
-        stable_ids (bool | None):
-            Hint to the integration to return stable media IDs.
-        paging (PagingOptions | None):
-            Optional paging object to limit returned items.
-    """
-
-    media_id: str | None = None
-    media_type: str | None = None
-    stable_ids: bool | None = None
-    paging: PagingOptions | None = None
-
     def __post_init__(self):
-        if isinstance(self.paging, dict):
-            self.paging = PagingOptions(**self.paging)
-
-
-@dataclass
-class SearchMediaFilter:
-    """
-    Search media filter options.
-
-    Attributes:
-        media_classes (list[MediaClass]|None):
-            Optional list of media classes to filter the results.
-        artist (str|None):
-            Optional artist name.
-        album (str|None):
-            Optional album name.
-    """
-
-    media_classes: list[MediaClass] | None = None
-    artist: str | None = None
-    album: str | None = None
-
-    def __post_init__(self):
-        if self.media_classes:
-            self.media_classes = [
-                MediaClass(media_class) for media_class in self.media_classes
-            ]
-
-
-@dataclass(kw_only=True)
-class SearchOptions(BrowseOptions):
-    """
-    Browsing media request message.
-
-    Attributes:
-        query (str):
-            Free text search query.
-        filter (SearchMediaFilter | None):
-            Optional media filter to restrict search.
-    """
-
-    query: str
-    filter: SearchMediaFilter | None = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        if isinstance(self.filter, dict):
-            self.filter = SearchMediaFilter(**self.filter)
-
-
-@dataclass(kw_only=True)
-class BrowseMediaMsgData(BrowseOptions):
-    """
-    Browsing media request message.
-
-    Attributes:
-        entity_id (str):
-            media-player entity ID to browse.
-    """
-
-    entity_id: str
-
-    def __post_init__(self):  # pylint: disable=W0246
-        super().__post_init__()
-
-
-@dataclass(kw_only=True)
-class SearchMediaMsgData(BrowseOptions):
-    """
-    Search media request message.
-
-    Attributes:
-        entity_id (str):
-            media-player entity ID to browse.
-        query (str):
-            Free text search query.
-        filter (SearchMediaFilter|None):
-            Additional user filter to limit the search scope.
-    """
-
-    entity_id: str
-    query: str
-    filter: SearchMediaFilter | None = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        if isinstance(self.filter, dict):
-            self.filter = SearchMediaFilter(**self.filter)
-
-
-@dataclass
-class BrowseMediaItem:
-    """Browse Media Item object."""
-
-    title: str
-    media_class: str
-    media_type: str
-    media_id: str
-    can_browse: bool | None = None
-    can_play: bool | None = None
-    can_search: bool | None = None
-    subtitle: str | None = None
-    artist: str | None = None
-    album: str | None = None
-    thumbnail: str | None = None
-    duration: int | None = None
-    items: list["BrowseMediaItem"] | None = None
-
-
-@dataclass(kw_only=True)
-class BrowseResults:
-    """
-    Browsing media results.
-
-    Attributes:
-        media (BrowseMediaItem | None):
-            The browsed media item, or `undefined` if not found.
-        pagination (Pagination):
-            Pagination metadata for this result page.
-    """
-
-    media: BrowseMediaItem | None = None
-    pagination: Pagination
-
-
-SearchMediaItem = BrowseMediaItem
-
-
-@dataclass
-class SearchResults:
-    """
-    Searching media results.
-
-    Attributes:
-        media (list[BrowseMediaItem]):
-            Array of matching media items. Pass an empty array if no results were found.
-        pagination (Pagination):
-            Pagination metadata for this result page.
-    """
-
-    media: list[SearchMediaItem]
-    pagination: Pagination
+        """Validate fields."""
+        if self.page < 1:
+            raise ValueError("page must be >= 1")
+        if not 0 <= self.limit <= 1000:
+            raise ValueError(
+                f"Invalid limit: {self.limit}. Must be between 0 and 1000."
+            )
+        if self.count is not None and self.count < 0:
+            raise ValueError("count cannot be negative")

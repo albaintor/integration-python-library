@@ -13,7 +13,7 @@ frames are delivered on the binary channel and handled by IntegrationAPI.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Optional
 
 from .api_definitions import CommandHandler
@@ -32,7 +32,7 @@ DEFAULT_AUDIO_CHANNELS = 1
 DEFAULT_SAMPLE_RATE = 16000
 
 
-class States(str, Enum):
+class States(StrEnum):
     """Voice Assistant entity states."""
 
     UNAVAILABLE = "UNAVAILABLE"
@@ -41,7 +41,7 @@ class States(str, Enum):
     OFF = "OFF"
 
 
-class Features(str, Enum):
+class Features(StrEnum):
     """Voice Assistant features."""
 
     TRANSCRIPTION = "transcription"
@@ -60,13 +60,13 @@ class Features(str, Enum):
     """
 
 
-class Attributes(str, Enum):
+class Attributes(StrEnum):
     """Voice Assistant entity attributes."""
 
     STATE = "state"
 
 
-class Commands(str, Enum):
+class Commands(StrEnum):
     """Integration-API Voice Assistant entity commands."""
 
     VOICE_START = "voice_start"
@@ -77,7 +77,7 @@ class Commands(str, Enum):
     """
 
 
-class Options(str, Enum):
+class Options(StrEnum):
     """Voice Assistant entity option fields."""
 
     AUDIO_CFG = "audio_cfg"
@@ -88,7 +88,7 @@ class Options(str, Enum):
 # ---------------------------------------------------------------------------
 # Data models for options
 # ---------------------------------------------------------------------------
-class SampleFormat(str, Enum):
+class SampleFormat(StrEnum):
     """Audio format specification."""
 
     I16 = "I16"
@@ -300,7 +300,10 @@ class VoiceAssistant(Entity):
         name: str | dict[str, str],
         features: list[Features],
         attributes: dict[str, Any],
+        *,
         options: dict[str, Any] | VoiceAssistantEntityOptions | None = None,
+        icon: str | None = None,
+        description: str | dict[str, str] | None = None,
         area: str | None = None,
         cmd_handler: CommandHandler = None,
     ) -> None:
@@ -311,6 +314,8 @@ class VoiceAssistant(Entity):
         :param features: voice assistant features
         :param attributes: voice assistant attributes
         :param options: voice assistant options
+        :param icon: optional icon
+        :param description: optional description, either a string or a language dictionary
         :param area: optional area
         :param cmd_handler: handler for entity commands
         """
@@ -318,13 +323,15 @@ class VoiceAssistant(Entity):
             identifier,
             name,
             EntityTypes.VOICE_ASSISTANT,
-            [f.value if isinstance(f, Enum) else f for f in features],
+            [f.value if isinstance(f, StrEnum) else f for f in features],
             attributes,
             options=(
                 options
                 if isinstance(options, dict)
                 else (None if options is None else asdict(options))
             ),
+            icon=icon,
+            description=description,
             area=area,
             cmd_handler=cmd_handler,
         )

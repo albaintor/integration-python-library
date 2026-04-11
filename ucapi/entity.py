@@ -7,7 +7,7 @@ Entity definitions.
 
 import inspect
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .api_definitions import CommandHandler, StatusCodes
@@ -16,7 +16,25 @@ _LOG = logging.getLogger(__name__)
 _LOG.setLevel(logging.DEBUG)
 
 
-class EntityTypes(str, Enum):
+def validate_str(name: str, value: str, min_len: int = 1, max_len: int = 255) -> None:
+    """
+    Validate that a string is not empty and within length limits.
+
+    :param name: Field name for error messages.
+    :param value: The string to validate.
+    :param min_len: Minimal length of the string.
+    :param max_len: Maximal length of the string.
+    """
+    if not isinstance(value, str):
+        raise TypeError(f"{name} must be str, got {type(value).__name__}")
+    length = len(value)
+    if length < min_len:
+        raise ValueError(f"{name} must be at least {min_len} characters")
+    if length > max_len:
+        raise ValueError(f"{name} must be at most {max_len} characters")
+
+
+class EntityTypes(StrEnum):
     """Entity types."""
 
     COVER = "cover"
@@ -32,7 +50,7 @@ class EntityTypes(str, Enum):
     VOICE_ASSISTANT = "voice_assistant"
 
 
-class CommonStates(str, Enum):
+class CommonStates(StrEnum):
     """Common entity states available in all entities."""
 
     UNAVAILABLE = "UNAVAILABLE"
@@ -64,6 +82,8 @@ class Entity:
         *,
         device_class: str | None = None,
         options: dict[str, Any] | None = None,
+        icon: str | None = None,
+        description: str | dict[str, str] | None = None,
         area: str | None = None,
         cmd_handler: CommandHandler = None,
     ):
@@ -77,12 +97,20 @@ class Entity:
         :param attributes: entity attributes
         :param device_class: entity device class
         :param options: entity options
+        :param icon: optional icon
+        :param description: optional description, either a string or a language dictionary
         :param area: optional area name
         :param cmd_handler: optional handler for entity commands
         """
         self.id = identifier
         self.name = {"en": name} if isinstance(name, str) else name
         self.entity_type = entity_type
+        self.icon = icon
+        self.description = (
+            ({"en": description} if isinstance(description, str) else description)
+            if description
+            else None
+        )
         self.device_id = None
         self.features = features
         self.attributes = attributes
