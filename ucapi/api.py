@@ -143,9 +143,7 @@ class IntegrationAPI:
     def _voice_key(websocket: Any, session_id: int) -> VoiceSessionKey:
         return websocket, int(session_id)
 
-    async def init(
-        self, driver_path: str, setup_handler: uc.SetupHandler | None = None
-    ):
+    async def init(self, driver_path: str, setup_handler: uc.SetupHandler | None = None):
         """
         Load driver configuration and start integration-API WebSocket server.
 
@@ -156,9 +154,7 @@ class IntegrationAPI:
         self._driver_path = driver_path
         self._setup_handler = setup_handler
 
-        self._configured_entities.add_listener(
-            uc.Events.ENTITY_ATTRIBUTES_UPDATED, self._on_entity_attributes_updated
-        )
+        self._configured_entities.add_listener(uc.Events.ENTITY_ATTRIBUTES_UPDATED, self._on_entity_attributes_updated)
 
         # Load driver config
         with open(self._driver_path, "r", encoding="utf-8") as file:
@@ -173,17 +169,13 @@ class IntegrationAPI:
 
         _adjust_driver_url(self._driver_info, port)
 
-        disable_mdns_publish = os.getenv(
-            "UC_DISABLE_MDNS_PUBLISH", "false"
-        ).lower() in ("true", "1")
+        disable_mdns_publish = os.getenv("UC_DISABLE_MDNS_PUBLISH", "false").lower() in ("true", "1")
 
         if disable_mdns_publish is False:
             # Setup zeroconf service info
             name = f'{self._driver_info["driver_id"]}._uc-integration._tcp.local.'
             hostname = local_hostname()
-            driver_name = _get_default_language_string(
-                self._driver_info["name"], "Unknown driver"
-            )
+            driver_name = _get_default_language_string(self._driver_info["name"], "Unknown driver")
 
             _LOG.debug("Publishing driver: name=%s, host=%s:%d", name, hostname, port)
 
@@ -203,9 +195,7 @@ class IntegrationAPI:
             await zeroconf.async_register_service(info)
 
         host = interface if interface is not None else "0.0.0.0"
-        self._server_task = self._loop.create_task(
-            self._start_web_socket_server(host, port)
-        )
+        self._server_task = self._loop.create_task(self._start_web_socket_server(host, port))
 
         _LOG.info(
             "Driver is up: %s, version: %s, api: %s, listening on: %s:%d",
@@ -223,9 +213,7 @@ class IntegrationAPI:
             "attributes": attributes,
         }
 
-        await self._broadcast_ws_event(
-            uc.WsMsgEvents.ENTITY_CHANGE, data, uc.EventCategory.ENTITY
-        )
+        await self._broadcast_ws_event(uc.WsMsgEvents.ENTITY_CHANGE, data, uc.EventCategory.ENTITY)
 
     async def _start_web_socket_server(self, host: str, port: int) -> None:
         async with serve(self._handle_ws, host, port):
@@ -248,22 +236,14 @@ class IntegrationAPI:
         try:
             _LOG.info("WS: Client added: %s", websocket.remote_address)
 
-            ctx.consumer_task = self._loop.create_task(
-                self._ws_consumer(websocket, ctx)
-            )
-            ctx.producer_task = self._loop.create_task(
-                self._ws_producer(websocket, ctx)
-            )
+            ctx.consumer_task = self._loop.create_task(self._ws_consumer(websocket, ctx))
+            ctx.producer_task = self._loop.create_task(self._ws_producer(websocket, ctx))
             ctx.router_task = self._loop.create_task(self._ws_router(websocket, ctx))
 
             # authenticate on connection
             await self._authenticate(websocket, True)
             self._events.emit(uc.Events.CLIENT_CONNECTED, websocket=websocket)
-            tasks = [
-                t
-                for t in [ctx.consumer_task, ctx.producer_task, ctx.router_task]
-                if t is not None
-            ]
+            tasks = [t for t in [ctx.consumer_task, ctx.producer_task, ctx.router_task] if t is not None]
             done, pending = await asyncio.wait(
                 tasks,
                 return_when=asyncio.FIRST_COMPLETED,
@@ -274,9 +254,7 @@ class IntegrationAPI:
 
             results = await asyncio.gather(*done, *pending, return_exceptions=True)
             for result in results:
-                if isinstance(result, Exception) and not isinstance(
-                    result, asyncio.CancelledError
-                ):
+                if isinstance(result, Exception) and not isinstance(result, asyncio.CancelledError):
                     raise result
 
         except ConnectionClosedOK:
@@ -377,15 +355,11 @@ class IntegrationAPI:
             return
 
         if _LOG.isEnabledFor(logging.DEBUG):
-            _LOG.debug(
-                "[%s] ->: %s", websocket.remote_address, filter_log_msg_data(payload)
-            )
+            _LOG.debug("[%s] ->: %s", websocket.remote_address, filter_log_msg_data(payload))
 
         await ctx.outgoing.put(json.dumps(payload))
 
-    async def _send_ok_result(
-        self, websocket, req_id: int, msg_data: dict[str, Any] | list | None = None
-    ) -> None:
+    async def _send_ok_result(self, websocket, req_id: int, msg_data: dict[str, Any] | list | None = None) -> None:
         """
         Send a WebSocket success message with status code OK.
 
@@ -396,9 +370,7 @@ class IntegrationAPI:
         Raises:
             websockets.ConnectionClosed: When the connection is closed.
         """
-        await self._send_ws_response(
-            websocket, req_id, "result", msg_data, uc.StatusCodes.OK
-        )
+        await self._send_ws_response(websocket, req_id, "result", msg_data, uc.StatusCodes.OK)
 
     async def _send_error_result(
         self,
@@ -450,9 +422,7 @@ class IntegrationAPI:
         }
         await self._enqueue_ws_payload(websocket, data)
 
-    async def _broadcast_ws_event(
-        self, msg: str, msg_data: dict[str, Any], category: uc.EventCategory
-    ) -> None:
+    async def _broadcast_ws_event(self, msg: str, msg_data: dict[str, Any], category: uc.EventCategory) -> None:
         """
         Send the given event-message to all connected WebSocket clients.
 
@@ -468,13 +438,9 @@ class IntegrationAPI:
             try:
                 await self._enqueue_ws_payload(websocket, data)
             except Exception:  # pylint: disable=broad-exception-caught
-                _LOG.exception(
-                    "Failed to enqueue broadcast for %s", websocket.remote_address
-                )
+                _LOG.exception("Failed to enqueue broadcast for %s", websocket.remote_address)
 
-    async def _send_ws_event(
-        self, websocket, msg: str, msg_data: dict[str, Any], category: uc.EventCategory
-    ) -> None:
+    async def _send_ws_event(self, websocket, msg: str, msg_data: dict[str, Any], category: uc.EventCategory) -> None:
         """
         Send an event-message to the given WebSocket client.
 
@@ -516,7 +482,6 @@ class IntegrationAPI:
 
     def _handle_pending_response(self, websocket, data: dict[str, Any]) -> None:
         """Resolve the response message that corresponds to a pending request from the driver."""
-
         resp_id = data.get("req_id", data.get("id"))
         if resp_id is None:
             _LOG.warning(
@@ -607,9 +572,7 @@ class IntegrationAPI:
         - Logs errors on deserialization failures and unknown message kinds.
         """
         if _LOG.isEnabledFor(logging.DEBUG):
-            _LOG.debug(
-                "[%s] <-: <binary %d bytes>", websocket.remote_address, len(data)
-            )
+            _LOG.debug("[%s] <-: <binary %d bytes>", websocket.remote_address, len(data))
 
         # Parse IntegrationMessage from bytes
         try:
@@ -871,9 +834,7 @@ class IntegrationAPI:
         # If handler not started yet, start it now (best effort)
         if ctx.handler_task is None and self._voice_handler is not None:
             try:
-                ctx.handler_task = self._loop.create_task(
-                    self._run_voice_handler(ctx.session)
-                )
+                ctx.handler_task = self._loop.create_task(self._run_voice_handler(ctx.session))
             except Exception:  # pylint: disable=W0718
                 _LOG.exception(
                     "Failed to start voice handler on timeout for session %s",
@@ -885,9 +846,7 @@ class IntegrationAPI:
         await self._cleanup_voice_session(key)
 
     # pylint: disable=R0912
-    async def _handle_ws_request_msg(
-        self, websocket, msg: str, req_id: int, msg_data: dict[str, Any] | None
-    ) -> None:
+    async def _handle_ws_request_msg(self, websocket, msg: str, req_id: int, msg_data: dict[str, Any] | None) -> None:
         if msg == uc.WsMessages.GET_DRIVER_VERSION:
             await self._send_ws_response(
                 websocket,
@@ -925,9 +884,7 @@ class IntegrationAPI:
             await self._unsubscribe_events(websocket, msg_data)
             await self._send_ok_result(websocket, req_id)
         elif msg == uc.WsMessages.GET_DRIVER_METADATA:
-            await self._send_ws_response(
-                websocket, req_id, uc.WsMsgEvents.DRIVER_METADATA, self._driver_info
-            )
+            await self._send_ws_response(websocket, req_id, uc.WsMsgEvents.DRIVER_METADATA, self._driver_info)
         elif msg == uc.WsMessages.SETUP_DRIVER:
             if not await self._setup_driver(websocket, req_id, msg_data):
                 # sleep for web-configurator quirks...
@@ -938,9 +895,7 @@ class IntegrationAPI:
                 await asyncio.sleep(0.5)
                 await self.driver_setup_error(websocket)
 
-    async def _handle_ws_event_msg(
-        self, websocket: Any, msg: str, msg_data: dict[str, Any] | None
-    ) -> None:
+    async def _handle_ws_event_msg(self, websocket: Any, msg: str, msg_data: dict[str, Any] | None) -> None:
         if msg == uc.WsMsgEvents.CONNECT:
             self._events.emit(uc.Events.CONNECT, websocket=websocket)
         elif msg == uc.WsMsgEvents.DISCONNECT:
@@ -951,9 +906,7 @@ class IntegrationAPI:
             self._events.emit(uc.Events.EXIT_STANDBY, websocket=websocket)
         elif msg == uc.WsMsgEvents.ABORT_DRIVER_SETUP:
             if not self._setup_handler:
-                _LOG.warning(
-                    "Received abort_driver_setup event, but no setup handler provided by the driver!"
-                )  # noqa
+                _LOG.warning("Received abort_driver_setup event, but no setup handler provided by the driver!")  # noqa
                 return
 
             if "error" in msg_data:
@@ -963,9 +916,7 @@ class IntegrationAPI:
                     error = uc.IntegrationSetupError.OTHER
                 await self._setup_handler(uc.AbortDriverSetup(error))
             else:
-                _LOG.warning(
-                    "Unsupported abort_driver_setup payload received: %s", msg_data
-                )
+                _LOG.warning("Unsupported abort_driver_setup payload received: %s", msg_data)
 
     async def _authenticate(self, websocket, success: bool) -> None:
         await self._send_ws_response(
@@ -1001,9 +952,7 @@ class IntegrationAPI:
             uc.EventCategory.DEVICE,
         )
 
-    async def _subscribe_events(
-        self, websocket: Any, msg_data: dict[str, Any] | None
-    ) -> None:
+    async def _subscribe_events(self, websocket: Any, msg_data: dict[str, Any] | None) -> None:
         if msg_data is None:
             _LOG.warning("Ignoring _subscribe_events: called with empty msg_data")
             return
@@ -1023,9 +972,7 @@ class IntegrationAPI:
             websocket=websocket,
         )
 
-    async def _unsubscribe_events(
-        self, websocket: Any, msg_data: dict[str, Any] | None
-    ) -> bool:
+    async def _unsubscribe_events(self, websocket: Any, msg_data: dict[str, Any] | None) -> bool:
         if msg_data is None:
             _LOG.warning("Ignoring _unsubscribe_events: called with empty msg_data")
             return False
@@ -1044,23 +991,17 @@ class IntegrationAPI:
 
         return res
 
-    async def _entity_command(
-        self, websocket, req_id: int, msg_data: dict[str, Any] | None
-    ) -> None:
+    async def _entity_command(self, websocket, req_id: int, msg_data: dict[str, Any] | None) -> None:
         if not msg_data:
             _LOG.warning("Ignoring entity command: called with empty msg_data")
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
         cmd_id = msg_data["cmd_id"] if "cmd_id" in msg_data else None
         if entity_id is None or cmd_id is None:
             _LOG.warning("Ignoring command: missing entity_id or cmd_id")
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         entity = self.configured_entities.get(entity_id)
@@ -1123,28 +1064,20 @@ class IntegrationAPI:
                 "Old Entity.command signature detected for %s, trying old signature. Please update the command signature.",
                 entity.id,
             )
-            result = await entity.command(
-                cmd_id, msg_data["params"] if "params" in msg_data else None
-            )
+            result = await entity.command(cmd_id, msg_data["params"] if "params" in msg_data else None)
 
         await self.acknowledge_command(websocket, req_id, result)
 
-    async def _browse_media(
-        self, websocket, req_id: int, msg_data: dict[str, Any] | None
-    ) -> None:
+    async def _browse_media(self, websocket, req_id: int, msg_data: dict[str, Any] | None) -> None:
         if not msg_data:
             _LOG.warning("Ignoring browse_media command: called with empty msg_data")
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
         if entity_id is None:
             _LOG.warning("Ignoring browse_media command: missing entity_id")
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         entity = self.configured_entities.get(entity_id)
@@ -1160,12 +1093,8 @@ class IntegrationAPI:
         try:
             data = BrowseMediaMsgData(**msg_data)
         except (TypeError, ValueError):
-            _LOG.error(
-                "Cannot browse media for '%s': wrong format %s", entity_id, msg_data
-            )
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            _LOG.error("Cannot browse media for '%s': wrong format %s", entity_id, msg_data)
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         # call integration driver to handle browse request
@@ -1173,9 +1102,7 @@ class IntegrationAPI:
             result = await entity.browse(data)
         except Exception:  # pylint: disable=W0718
             _LOG.exception("Failed to call MediaPlayer.browse for '%s'", entity_id)
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.SERVER_ERROR
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.SERVER_ERROR)
             return
 
         if isinstance(result, BrowseResults):
@@ -1189,22 +1116,16 @@ class IntegrationAPI:
         else:
             await self.acknowledge_command(websocket, req_id, result)
 
-    async def _search_media(
-        self, websocket, req_id: int, msg_data: dict[str, Any] | None
-    ) -> None:
+    async def _search_media(self, websocket, req_id: int, msg_data: dict[str, Any] | None) -> None:
         if not msg_data:
             _LOG.warning("Ignoring search_media command: called with empty msg_data")
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         entity_id = msg_data["entity_id"] if "entity_id" in msg_data else None
         if entity_id is None:
             _LOG.warning("Ignoring search_media command: missing entity_id")
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         entity = self.configured_entities.get(entity_id)
@@ -1219,21 +1140,15 @@ class IntegrationAPI:
         try:
             data = SearchMediaMsgData(**msg_data)
         except (TypeError, ValueError):
-            _LOG.error(
-                "Cannot search media for '%s': wrong format %s", entity_id, msg_data
-            )
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.BAD_REQUEST
-            )
+            _LOG.error("Cannot search media for '%s': wrong format %s", entity_id, msg_data)
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.BAD_REQUEST)
             return
 
         try:
             result = await entity.search(data)
         except Exception:  # pylint: disable=W0718
             _LOG.exception("Failed to call MediaPlayer.search for '%s'", entity_id)
-            await self.acknowledge_command(
-                websocket, req_id, uc.StatusCodes.SERVER_ERROR
-            )
+            await self.acknowledge_command(websocket, req_id, uc.StatusCodes.SERVER_ERROR)
             return
 
         if isinstance(result, SearchResults):
@@ -1247,9 +1162,7 @@ class IntegrationAPI:
         else:
             await self.acknowledge_command(websocket, req_id, result)
 
-    async def _setup_driver(
-        self, websocket, req_id: int, msg_data: dict[str, Any] | None
-    ) -> bool:
+    async def _setup_driver(self, websocket, req_id: int, msg_data: dict[str, Any] | None) -> bool:
         await self.acknowledge_command(websocket, req_id)
 
         if msg_data is None or "setup_data" not in msg_data:
@@ -1259,24 +1172,18 @@ class IntegrationAPI:
 
         # make sure integration driver installed a setup handler
         if not self._setup_handler:
-            _LOG.error(
-                "Received setup_driver request, but no setup handler provided by the driver!"
-            )  # noqa
+            _LOG.error("Received setup_driver request, but no setup handler provided by the driver!")  # noqa
             return False
 
         result = False
         try:
             action = await self._setup_handler(
-                uc.DriverSetupRequest(
-                    msg_data.get("reconfigure") or False, msg_data["setup_data"]
-                )
+                uc.DriverSetupRequest(msg_data.get("reconfigure") or False, msg_data["setup_data"])
             )
 
             if isinstance(action, uc.RequestUserInput):
                 await self.driver_setup_progress(websocket)
-                await self.request_driver_setup_user_input(
-                    websocket, action.title, action.settings
-                )
+                await self.request_driver_setup_user_input(websocket, action.title, action.settings)
                 result = True
             elif isinstance(action, uc.RequestUserConfirmation):
                 await self.driver_setup_progress(websocket)
@@ -1297,15 +1204,11 @@ class IntegrationAPI:
 
         return result
 
-    async def _set_driver_user_data(
-        self, websocket, req_id: int, msg_data: dict[str, Any] | None
-    ) -> bool:
+    async def _set_driver_user_data(self, websocket, req_id: int, msg_data: dict[str, Any] | None) -> bool:
         await self.acknowledge_command(websocket, req_id)
 
         if not self._setup_handler:
-            _LOG.error(
-                "Received set_driver_user_data request, but no setup handler provided by the driver!"
-            )  # noqa
+            _LOG.error("Received set_driver_user_data request, but no setup handler provided by the driver!")  # noqa
             return False
 
         if "input_values" in msg_data or "confirm" in msg_data:
@@ -1313,27 +1216,19 @@ class IntegrationAPI:
             await asyncio.sleep(0.5)
             await self.driver_setup_progress(websocket)
         else:
-            _LOG.warning(
-                "Unsupported set_driver_user_data payload received: %s", msg_data
-            )
+            _LOG.warning("Unsupported set_driver_user_data payload received: %s", msg_data)
             return False
 
         result = False
         try:
             action = uc.SetupError()
             if "input_values" in msg_data:
-                action = await self._setup_handler(
-                    uc.UserDataResponse(msg_data["input_values"])
-                )
+                action = await self._setup_handler(uc.UserDataResponse(msg_data["input_values"]))
             elif "confirm" in msg_data:
-                action = await self._setup_handler(
-                    uc.UserConfirmationResponse(msg_data["confirm"])
-                )
+                action = await self._setup_handler(uc.UserConfirmationResponse(msg_data["confirm"]))
 
             if isinstance(action, uc.RequestUserInput):
-                await self.request_driver_setup_user_input(
-                    websocket, action.title, action.settings
-                )
+                await self.request_driver_setup_user_input(websocket, action.title, action.settings)
                 result = True
             elif isinstance(action, uc.RequestUserConfirmation):
                 await self.request_driver_setup_user_confirmation(
@@ -1379,9 +1274,7 @@ class IntegrationAPI:
         """
         data = {"event_type": "SETUP", "state": "SETUP"}
 
-        await self._send_ws_event(
-            websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE
-        )
+        await self._send_ws_event(websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE)
 
     # pylint: disable=R0917
     async def request_driver_setup_user_confirmation(
@@ -1417,9 +1310,7 @@ class IntegrationAPI:
             },
         }
 
-        await self._send_ws_event(
-            websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE
-        )
+        await self._send_ws_event(websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE)
 
     async def request_driver_setup_user_input(
         self, websocket, title: str | dict[str, str], settings: dict[str, Any] | list
@@ -1428,30 +1319,22 @@ class IntegrationAPI:
         data = {
             "event_type": "SETUP",
             "state": "WAIT_USER_ACTION",
-            "require_user_action": {
-                "input": {"title": _to_language_object(title), "settings": settings}
-            },
+            "require_user_action": {"input": {"title": _to_language_object(title), "settings": settings}},
         }
 
-        await self._send_ws_event(
-            websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE
-        )
+        await self._send_ws_event(websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE)
 
     async def driver_setup_complete(self, websocket) -> None:
         """Send a driver setup complete event to Remote Two/3."""
         data = {"event_type": "STOP", "state": "OK"}
 
-        await self._send_ws_event(
-            websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE
-        )
+        await self._send_ws_event(websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE)
 
     async def driver_setup_error(self, websocket, error="OTHER") -> None:
         """Send a driver setup error event to Remote Two/3."""
         data = {"event_type": "STOP", "state": "ERROR", "error": error}
 
-        await self._send_ws_event(
-            websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE
-        )
+        await self._send_ws_event(websocket, uc.WsMsgEvents.DRIVER_SETUP_CHANGE, data, uc.EventCategory.DEVICE)
 
     @staticmethod
     def _wrap_event_listener(listener: Callable) -> Callable:
@@ -1472,9 +1355,7 @@ class IntegrationAPI:
 
         params = list(sig.parameters.values())
 
-        accepts_varargs = any(
-            p.kind == inspect.Parameter.VAR_POSITIONAL for p in params
-        )
+        accepts_varargs = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in params)
         accepts_varkw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params)
 
         # How many positional args can the listener accept (excluding *args/**kwargs)?
@@ -1488,18 +1369,13 @@ class IntegrationAPI:
         accepted_kw = {
             p.name
             for p in params
-            if p.kind
-            in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+            if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
         }
 
         @wraps(listener)
         def wrapper(*args: Any, **kwargs: Any):
             call_args = args if accepts_varargs else args[:max_positional]
-            call_kwargs = (
-                kwargs
-                if accepts_varkw
-                else {k: v for k, v in kwargs.items() if k in accepted_kw}
-            )
+            call_kwargs = kwargs if accepts_varkw else {k: v for k, v in kwargs.items() if k in accepted_kw}
             return listener(*call_args, **call_kwargs)
 
         return wrapper
@@ -1546,9 +1422,7 @@ class IntegrationAPI:
         """
         self._events.remove_all_listeners(event)
 
-    async def get_supported_entity_types(
-        self, websocket, *, timeout: float = 5.0
-    ) -> list[str]:
+    async def get_supported_entity_types(self, websocket, *, timeout: float = 5.0) -> list[str]:
         """Request supported entity types from client and return msg_data."""
         resp = await self._ws_request(
             websocket,
@@ -1563,9 +1437,7 @@ class IntegrationAPI:
             )
         return resp.get("msg_data", [])
 
-    async def get_version(
-        self, websocket, *, timeout: float = 5.0
-    ) -> dict[str, Any] | None:
+    async def get_version(self, websocket, *, timeout: float = 5.0) -> dict[str, Any] | None:
         """Request client version and return msg_data."""
         resp = await self._ws_request(
             websocket,
@@ -1581,9 +1453,7 @@ class IntegrationAPI:
 
         return resp.get("msg_data")
 
-    async def get_localization_cfg(
-        self, websocket, *, timeout: float = 5.0
-    ) -> dict[str, Any] | None:
+    async def get_localization_cfg(self, websocket, *, timeout: float = 5.0) -> dict[str, Any] | None:
         """Request localization config and return msg_data."""
         resp = await self._ws_request(
             websocket,
@@ -1600,15 +1470,11 @@ class IntegrationAPI:
 
         return resp.get("msg_data")
 
-    async def _update_supported_entity_types(
-        self, websocket, *, timeout: float = 5.0
-    ) -> None:
+    async def _update_supported_entity_types(self, websocket, *, timeout: float = 5.0) -> None:
         """Update supported entity types by remote."""
         await asyncio.sleep(0)
         try:
-            self._supported_entity_types = await self.get_supported_entity_types(
-                websocket, timeout=timeout
-            )
+            self._supported_entity_types = await self.get_supported_entity_types(websocket, timeout=timeout)
             _LOG.debug(
                 "[%s] Supported entity types %s",
                 websocket.remote_address,
@@ -1628,9 +1494,7 @@ class IntegrationAPI:
         available_entities = self._available_entities.get_all()
         if self._supported_entity_types:
             available_entities = [
-                entity
-                for entity in available_entities
-                if entity.get("entity_type") in self._supported_entity_types
+                entity for entity in available_entities if entity.get("entity_type") in self._supported_entity_types
             ]
         await self._send_ws_response(
             websocket,
@@ -1687,9 +1551,7 @@ def _to_language_object(text: str | dict[str, str] | None) -> dict[str, str] | N
     return text
 
 
-def _get_default_language_string(
-    text: str | dict[str, str] | None, default_text="Undefined"
-) -> str:
+def _get_default_language_string(text: str | dict[str, str] | None, default_text="Undefined") -> str:
     if text is None:
         return default_text
 
@@ -1749,10 +1611,7 @@ def local_hostname() -> str:
     # local hostname keeps on changing with a increasing number suffix!
     # https://apple.stackexchange.com/questions/189350/my-macs-hostname-keeps-adding-a-2-to-the-end
 
-    return (
-        os.getenv("UC_MDNS_LOCAL_HOSTNAME")
-        or f'{socket.gethostname().split(".", 1)[0]}.local.'
-    )
+    return os.getenv("UC_MDNS_LOCAL_HOSTNAME") or f'{socket.gethostname().split(".", 1)[0]}.local.'
 
 
 def filter_log_msg_data(data: dict[str, Any]) -> dict[str, Any]:
@@ -1777,11 +1636,7 @@ def filter_log_msg_data(data: dict[str, Any]) -> dict[str, Any]:
         if (
             "attributes" in log_upd["msg_data"]
             and MediaAttr.MEDIA_IMAGE_URL in log_upd["msg_data"]["attributes"]
-            and (
-                media_image_url := log_upd["msg_data"]["attributes"][
-                    MediaAttr.MEDIA_IMAGE_URL
-                ]
-            )
+            and (media_image_url := log_upd["msg_data"]["attributes"][MediaAttr.MEDIA_IMAGE_URL])
             and media_image_url.startswith("data:")
         ):
             log_upd["msg_data"]["attributes"][MediaAttr.MEDIA_IMAGE_URL] = "data:***"
@@ -1790,9 +1645,7 @@ def filter_log_msg_data(data: dict[str, Any]) -> dict[str, Any]:
                 if (
                     "attributes" in item
                     and MediaAttr.MEDIA_IMAGE_URL in item["attributes"]
-                    and (
-                        media_image_url := item["attributes"][MediaAttr.MEDIA_IMAGE_URL]
-                    )
+                    and (media_image_url := item["attributes"][MediaAttr.MEDIA_IMAGE_URL])
                     and media_image_url.startswith("data:")
                 ):
                     item["attributes"][MediaAttr.MEDIA_IMAGE_URL] = "data:***"
