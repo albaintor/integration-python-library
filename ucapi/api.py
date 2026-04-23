@@ -270,6 +270,7 @@ class IntegrationAPI:
             )
 
             if pending:
+                # graceful shutdown: wait a bit for pending tasks to process sentinel 'None'
                 _LOG.debug("[%s] WS: Draining tasks", websocket.remote_address)
                 await asyncio.wait(pending, timeout=1.0)
 
@@ -281,7 +282,11 @@ class IntegrationAPI:
                 if isinstance(result, Exception) and not isinstance(
                     result, asyncio.CancelledError
                 ):
-                    raise result
+                    _LOG.error(
+                        "[%s] WS: Exception in task",
+                        websocket.remote_address,
+                        exc_info=result,
+                    )
 
         except ConnectionClosedOK:
             _LOG.info("[%s] WS: Connection closed", websocket.remote_address)
